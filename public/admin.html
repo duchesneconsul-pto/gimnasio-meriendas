@@ -8,7 +8,13 @@
 </head>
 <body>
   <div class="app">
-    <aside class="sidebar">
+    <div class="mobile-header">
+      <button class="menu-btn" id="menuBtn">☰</button>
+      <img src="https://assets.cdn.filesafe.space/iWSBkh3VCIJBwdzx9avI/media/6a60ea6781877afd27bd6992.png" alt="Gimnasio Campestre" class="mobile-logo">
+      <h2>Meriendas</h2>
+    </div>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <img src="https://assets.cdn.filesafe.space/iWSBkh3VCIJBwdzx9avI/media/6a60ea6781877afd27bd6992.png" alt="Gimnasio Campestre" class="sidebar-logo">
         <div class="sidebar-header-text">
@@ -264,6 +270,14 @@
       return data;
     }
 
+    // ── Sidebar toggle ──
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebarBackdrop').classList.toggle('active');
+    }
+    document.getElementById('menuBtn').addEventListener('click', toggleSidebar);
+    document.getElementById('sidebarBackdrop').addEventListener('click', toggleSidebar);
+
     // ── Navigation ──
     let currentSection = 'dashboard';
     function showSection(name) {
@@ -273,6 +287,7 @@
       document.querySelector(`.nav-item[onclick="showSection('${name}')"]`).classList.add('active');
       currentSection = name;
       loadSection(name);
+      if (window.innerWidth <= 768) toggleSidebar();
     }
 
     function loadSection(name) {
