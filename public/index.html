@@ -36,42 +36,6 @@
     </div>
   </div>
 
-  <script>
-    if (localStorage.getItem('token')) {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      window.location.href = user.rol === 'admin' ? '/admin' : '/pos';
-    }
-
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById('btnLogin');
-      const errorEl = document.getElementById('loginError');
-      errorEl.style.display = 'none';
-      btn.disabled = true;
-      btn.textContent = 'Ingresando...';
-
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            usuario: document.getElementById('usuario').value,
-            password: document.getElementById('password').value
-          })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.usuario));
-        window.location.href = data.usuario.rol === 'admin' ? '/admin' : '/pos';
-      } catch (err) {
-        errorEl.textContent = err.message;
-        errorEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Ingresar';
-      }
-    });
-  </script>
+  <script src="/js/login.js"></script>
 </body>
 </html>

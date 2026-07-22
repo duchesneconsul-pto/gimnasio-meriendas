@@ -103,7 +103,8 @@ body {
   font-weight: 600;
   border-left-color: var(--gold);
 }
-.nav-item .icon { font-size: 1.1rem; width: 24px; text-align: center; }
+.nav-item .icon { width: 24px; text-align: center; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.nav-item .icon svg { display: block; }
 
 .nav-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 0.5rem 0.75rem; }
 
