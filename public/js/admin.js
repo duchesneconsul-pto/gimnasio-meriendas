@@ -137,9 +137,11 @@
   function cargarProductos() {
     api('/api/productos').then(function(prods) {
       document.getElementById('tablaProductos').innerHTML =
-        '<thead><tr><th>Nombre</th><th>Barcode</th><th>Categoria</th><th class="text-right">P. Compra</th><th class="text-right">P. Venta</th><th class="text-right">Stock</th><th class="text-right">Min</th><th>Estado</th><th></th></tr></thead>' +
+        '<thead><tr><th></th><th>Nombre</th><th>Barcode</th><th>Categoria</th><th class="text-right">P. Compra</th><th class="text-right">P. Venta</th><th class="text-right">Stock</th><th class="text-right">Min</th><th>Estado</th><th></th></tr></thead>' +
         '<tbody>' + prods.map(function(p) {
+          var imgCell = p.imagen ? '<img src="' + p.imagen + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover">' : '<div style="width:36px;height:36px;border-radius:6px;background:var(--surface);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>';
           return '<tr>' +
+            '<td>' + imgCell + '</td>' +
             '<td style="font-weight:600">' + p.nombre + '</td>' +
             '<td style="font-size:0.78rem;color:var(--text-muted);font-family:monospace">' + (p.codigo_barras || '—') + '</td>' +
             '<td><span class="badge badge-primary">' + p.categoria + '</span></td>' +
@@ -160,6 +162,31 @@
     if (btn) editarProducto(Number(btn.getAttribute('data-edit-prod')));
   });
 
+  function resetImgPreview() {
+    document.getElementById('prodImagen').value = '';
+    document.getElementById('prodImgPreview').innerHTML = '<span style="font-size:0.7rem;color:var(--text-muted);text-align:center">Sin imagen</span>';
+    document.getElementById('btnQuitarImagen').style.display = 'none';
+  }
+  function setImgPreview(src) {
+    document.getElementById('prodImgPreview').innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover">';
+    document.getElementById('btnQuitarImagen').style.display = '';
+  }
+  document.getElementById('prodImgFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast('Imagen muy grande (max 2MB)', 'error'); e.target.value = ''; return; }
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      document.getElementById('prodImagen').value = ev.target.result;
+      setImgPreview(ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('btnQuitarImagen').addEventListener('click', function() {
+    document.getElementById('prodImgFile').value = '';
+    resetImgPreview();
+  });
+
   function abrirModalProducto() {
     document.getElementById('modalProdTitle').textContent = 'Nuevo producto';
     document.getElementById('prodId').value = '';
@@ -169,6 +196,8 @@
     document.getElementById('prodPrecioCompra').value = '';
     document.getElementById('prodPrecioVenta').value = '';
     document.getElementById('prodStockMin').value = 5;
+    document.getElementById('prodImgFile').value = '';
+    resetImgPreview();
     abrirModal('modalProducto');
   }
   document.getElementById('btnNuevoProducto').addEventListener('click', abrirModalProducto);
@@ -184,6 +213,13 @@
       document.getElementById('prodPrecioCompra').value = prod.precio_compra;
       document.getElementById('prodPrecioVenta').value = prod.precio_venta;
       document.getElementById('prodStockMin').value = prod.stock_minimo;
+      document.getElementById('prodImgFile').value = '';
+      if (prod.imagen) {
+        document.getElementById('prodImagen').value = prod.imagen;
+        setImgPreview(prod.imagen);
+      } else {
+        resetImgPreview();
+      }
       abrirModal('modalProducto');
     });
   }
@@ -197,6 +233,7 @@
       precio_compra: Number(document.getElementById('prodPrecioCompra').value) || 0,
       precio_venta: Number(document.getElementById('prodPrecioVenta').value),
       stock_minimo: Number(document.getElementById('prodStockMin').value) || 5,
+      imagen: document.getElementById('prodImagen').value || null,
     };
     if (!body.nombre || !body.precio_venta) { toast('Nombre y precio venta requeridos', 'error'); return; }
     var url = id ? '/api/productos/' + id : '/api/productos';

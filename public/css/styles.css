@@ -59,16 +59,18 @@ body {
   padding: 1.25rem 1.25rem 1rem;
   border-bottom: 1px solid rgba(255,255,255,0.1);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  text-align: center;
 }
 .sidebar-logo {
-  width: 42px;
-  height: 42px;
+  width: 150px;
+  height: auto;
   border-radius: 8px;
   object-fit: contain;
   background: rgba(255,255,255,0.1);
-  padding: 3px;
+  padding: 6px;
 }
 .sidebar-header-text h2 {
   font-size: 0.95rem;
@@ -467,6 +469,7 @@ tr:hover td { background: rgba(26,35,126,0.015); }
 .producto-btn .p-nombre { font-size: 0.78rem; font-weight: 600; color: var(--text); margin-bottom: 0.25rem; line-height: 1.3; }
 .producto-btn .p-precio { font-size: 0.88rem; font-weight: 700; color: var(--primary); }
 .producto-btn .p-stock { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.15rem; }
+.producto-btn .p-img { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; margin-bottom: 0.3rem; }
 
 .carrito {
   display: flex;

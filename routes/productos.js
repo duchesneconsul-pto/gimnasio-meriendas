@@ -44,15 +44,15 @@ router.get('/buscar-barcode/:codigo', verificarToken, (req, res) => {
 });
 
 router.post('/', verificarToken, soloAdmin, (req, res) => {
-  const { nombre, codigo_barras, categoria, precio_compra, precio_venta, stock_actual, stock_minimo } = req.body;
+  const { nombre, codigo_barras, categoria, precio_compra, precio_venta, stock_actual, stock_minimo, imagen } = req.body;
   if (!nombre || precio_venta === undefined) {
     return res.status(400).json({ error: 'Nombre y precio de venta son requeridos' });
   }
   const db = getDb();
   try {
     const result = db.prepare(
-      'INSERT INTO productos (nombre, codigo_barras, categoria, precio_compra, precio_venta, stock_actual, stock_minimo) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).run(nombre, codigo_barras || null, categoria || 'general', precio_compra || 0, precio_venta, stock_actual || 0, stock_minimo || 5);
+      'INSERT INTO productos (nombre, codigo_barras, categoria, precio_compra, precio_venta, stock_actual, stock_minimo, imagen) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(nombre, codigo_barras || null, categoria || 'general', precio_compra || 0, precio_venta, stock_actual || 0, stock_minimo || 5, imagen || null);
     db._save();
     const producto = db.prepare('SELECT * FROM productos WHERE id = ?').get(result.lastInsertRowid);
     res.json(producto);
@@ -68,10 +68,10 @@ router.put('/:id', verificarToken, soloAdmin, (req, res) => {
   const existing = db.prepare('SELECT * FROM productos WHERE id = ?').get(Number(req.params.id));
   if (!existing) return res.status(404).json({ error: 'Producto no encontrado' });
 
-  const { codigo_barras } = req.body;
+  const { codigo_barras, imagen } = req.body;
   try {
   db.prepare(
-    'UPDATE productos SET nombre=?, codigo_barras=?, categoria=?, precio_compra=?, precio_venta=?, stock_minimo=?, activo=? WHERE id=?'
+    'UPDATE productos SET nombre=?, codigo_barras=?, categoria=?, precio_compra=?, precio_venta=?, stock_minimo=?, activo=?, imagen=? WHERE id=?'
   ).run(
     nombre ?? existing.nombre,
     codigo_barras !== undefined ? (codigo_barras || null) : existing.codigo_barras,
@@ -80,6 +80,7 @@ router.put('/:id', verificarToken, soloAdmin, (req, res) => {
     precio_venta ?? existing.precio_venta,
     stock_minimo ?? existing.stock_minimo,
     activo ?? existing.activo,
+    imagen !== undefined ? (imagen || null) : existing.imagen,
     Number(req.params.id)
   );
   db._save();

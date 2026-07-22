@@ -88,9 +88,11 @@
   function renderProductos() {
     var filtered = categoriaActiva === 'todas' ? productos : productos.filter(function(p) { return p.categoria === categoriaActiva; });
     document.getElementById('productosGrid').innerHTML = filtered.map(function(p) {
+      var imgHtml = p.imagen ? '<img src="' + p.imagen + '" class="p-img">' : '';
       return '<button class="producto-btn ' + (p.stock_actual <= 0 ? 'sin-stock' : '') + '" ' +
         (p.stock_actual > 0 ? 'data-add-prod="' + p.id + '"' : '') +
         ' title="' + p.nombre + ' - Stock: ' + p.stock_actual + '">' +
+        imgHtml +
         '<span class="p-nombre">' + p.nombre + '</span>' +
         '<span class="p-precio">' + fmt(p.precio_venta) + '</span>' +
         '<span class="p-stock">' + (p.stock_actual > 0 ? p.stock_actual + ' disp.' : 'Agotado') + '</span>' +

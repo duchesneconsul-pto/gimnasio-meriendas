@@ -199,6 +199,7 @@ async function initDb() {
   `);
 
   try { db.exec('ALTER TABLE productos ADD COLUMN codigo_barras TEXT UNIQUE'); } catch(e) {}
+  try { db.exec('ALTER TABLE productos ADD COLUMN imagen TEXT'); } catch(e) {}
 
   const adminExists = db.prepare('SELECT id FROM usuarios WHERE usuario = ?').get('admin');
   if (!adminExists) {
