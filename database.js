@@ -103,6 +103,7 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS productos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nombre TEXT NOT NULL,
+      codigo_barras TEXT UNIQUE,
       categoria TEXT NOT NULL DEFAULT 'general',
       precio_compra REAL NOT NULL DEFAULT 0,
       precio_venta REAL NOT NULL,
@@ -196,6 +197,8 @@ async function initDb() {
       FOREIGN KEY (cajero_id) REFERENCES usuarios(id)
     );
   `);
+
+  try { db.exec('ALTER TABLE productos ADD COLUMN codigo_barras TEXT UNIQUE'); } catch(e) {}
 
   const adminExists = db.prepare('SELECT id FROM usuarios WHERE usuario = ?').get('admin');
   if (!adminExists) {

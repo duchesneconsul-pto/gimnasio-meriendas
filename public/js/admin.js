@@ -137,10 +137,11 @@
   function cargarProductos() {
     api('/api/productos').then(function(prods) {
       document.getElementById('tablaProductos').innerHTML =
-        '<thead><tr><th>Nombre</th><th>Categoria</th><th class="text-right">P. Compra</th><th class="text-right">P. Venta</th><th class="text-right">Stock</th><th class="text-right">Min</th><th>Estado</th><th></th></tr></thead>' +
+        '<thead><tr><th>Nombre</th><th>Barcode</th><th>Categoria</th><th class="text-right">P. Compra</th><th class="text-right">P. Venta</th><th class="text-right">Stock</th><th class="text-right">Min</th><th>Estado</th><th></th></tr></thead>' +
         '<tbody>' + prods.map(function(p) {
           return '<tr>' +
             '<td style="font-weight:600">' + p.nombre + '</td>' +
+            '<td style="font-size:0.78rem;color:var(--text-muted);font-family:monospace">' + (p.codigo_barras || '—') + '</td>' +
             '<td><span class="badge badge-primary">' + p.categoria + '</span></td>' +
             '<td class="text-right tabular">' + fmt(p.precio_compra) + '</td>' +
             '<td class="text-right tabular" style="font-weight:600">' + fmt(p.precio_venta) + '</td>' +
@@ -162,6 +163,7 @@
   function abrirModalProducto() {
     document.getElementById('modalProdTitle').textContent = 'Nuevo producto';
     document.getElementById('prodId').value = '';
+    document.getElementById('prodBarcode').value = '';
     document.getElementById('prodNombre').value = '';
     document.getElementById('prodCategoria').value = 'general';
     document.getElementById('prodPrecioCompra').value = '';
@@ -177,8 +179,8 @@
       if (!prod) return;
       document.getElementById('modalProdTitle').textContent = 'Editar producto';
       document.getElementById('prodId').value = prod.id;
+      document.getElementById('prodBarcode').value = prod.codigo_barras || '';
       document.getElementById('prodNombre').value = prod.nombre;
-      document.getElementById('prodCategoria').value = prod.categoria;
       document.getElementById('prodPrecioCompra').value = prod.precio_compra;
       document.getElementById('prodPrecioVenta').value = prod.precio_venta;
       document.getElementById('prodStockMin').value = prod.stock_minimo;
@@ -190,6 +192,7 @@
     var id = document.getElementById('prodId').value;
     var body = {
       nombre: document.getElementById('prodNombre').value,
+      codigo_barras: document.getElementById('prodBarcode').value.trim() || null,
       categoria: document.getElementById('prodCategoria').value,
       precio_compra: Number(document.getElementById('prodPrecioCompra').value) || 0,
       precio_venta: Number(document.getElementById('prodPrecioVenta').value),

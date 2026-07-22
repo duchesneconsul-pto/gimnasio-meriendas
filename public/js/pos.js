@@ -336,6 +336,27 @@
     }).catch(function(e) { toast(e.message, 'error'); });
   });
 
+  // ── Barcode scanner ──
+  var barcodeInput = document.getElementById('barcodeInput');
+  barcodeInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var code = barcodeInput.value.trim();
+      if (!code) return;
+      if (!cajaActual) { toast('Debe abrir caja primero', 'error'); barcodeInput.value = ''; return; }
+      api('/api/productos/buscar-barcode/' + encodeURIComponent(code)).then(function(prod) {
+        agregarAlCarrito(prod.id);
+        toast(prod.nombre + ' agregado');
+        barcodeInput.value = '';
+        barcodeInput.focus();
+      }).catch(function() {
+        toast('Producto no encontrado: ' + code, 'error');
+        barcodeInput.value = '';
+        barcodeInput.focus();
+      });
+    }
+  });
+
   // ── Init ──
   document.getElementById('userName').textContent = (user && user.nombre) || '';
   cargarProductos();
