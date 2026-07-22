@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meriendas - Gimnasio Campestre</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <img src="https://assets.cdn.filesafe.space/iWSBkh3VCIJBwdzx9avI/media/6a60ea6781877afd27bd6992.png" alt="Gimnasio Campestre" class="login-logo">
+      <h1>Meriendas</h1>
+      <p class="subtitle">Gimnasio Campestre</p>
+
+      <div id="loginError" class="login-error"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label">Usuario</label>
+          <input type="text" class="form-input" id="usuario" placeholder="Ingrese su usuario" required autofocus>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contrasena</label>
+          <input type="password" class="form-input" id="password" placeholder="Ingrese su contrasena" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="btnLogin">Ingresar</button>
+      </form>
+
+      <div class="login-footer">
+        <div class="copyright">
+          <img src="https://assets.cdn.filesafe.space/iWSBkh3VCIJBwdzx9avI/media/6966c8b04d18c570732100ca.png" alt="Duchesne Consulting">
+          <span>&copy; 2026 Duchesne Consulting SAS</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (localStorage.getItem('token')) {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      window.location.href = user.rol === 'admin' ? '/admin' : '/pos';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btnLogin');
+      const errorEl = document.getElementById('loginError');
+      errorEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Ingresando...';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usuario: document.getElementById('usuario').value,
+            password: document.getElementById('password').value
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.usuario));
+        window.location.href = data.usuario.rol === 'admin' ? '/admin' : '/pos';
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Ingresar';
+      }
+    });
+  </script>
+</body>
+</html>

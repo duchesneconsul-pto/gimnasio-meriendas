@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS - Meriendas Gimnasio Campestre</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="pos-header">
+    <div class="pos-header-brand">
+      <img src="https://assets.cdn.filesafe.space/iWSBkh3VCIJBwdzx9avI/media/6a60ea6781877afd27bd6992.png" alt="Gimnasio Campestre" class="pos-header-logo">
+      <div>
+        <h1>Meriendas - POS</h1>
+        <span class="caja-info" id="cajaInfo">Caja: Sin abrir</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:center">
+      <span id="userName" style="font-size:0.82rem;opacity:0.8"></span>
+      <button class="btn btn-sm btn-outline" style="color:white;border-color:rgba(255,255,255,0.3)" onclick="abrirHistorial()">Ventas del dia</button>
+      <button class="btn btn-sm btn-outline" style="color:white;border-color:rgba(255,255,255,0.3)" onclick="abrirInventario()">Inventario</button>
+      <button class="btn btn-sm btn-gold" id="btnCaja" onclick="toggleCaja()">Abrir caja</button>
+      <button class="btn btn-sm btn-outline" style="color:white;border-color:rgba(255,255,255,0.3)" onclick="cerrarSesion()">Salir</button>
+    </div>
+  </div>
+
+  <div class="pos-layout" style="padding:0.75rem">
+    <div style="display:flex;flex-direction:column;overflow:hidden;border-radius:var(--radius-lg);border:1px solid var(--border-light);box-shadow:var(--shadow)">
+      <div class="filtros-cat" id="filtrosCat"></div>
+      <div class="productos-grid" id="productosGrid"></div>
+    </div>
+
+    <div class="carrito">
+      <div class="carrito-header">Carrito <span id="carritoCount">(0)</span></div>
+      <div class="carrito-items" id="carritoItems">
+        <div class="empty-state"><p>Seleccione productos para vender</p></div>
+      </div>
+      <div class="carrito-footer">
+        <div class="carrito-total">
+          <span>Total</span>
+          <span id="carritoTotal">$0</span>
+        </div>
+        <div class="pago-btns">
+          <button class="btn btn-primary" onclick="cobrar('EFECTIVO')" id="btnEfectivo" disabled>Efectivo</button>
+          <button class="btn btn-gold" onclick="cobrar('TRANSFERENCIA')" id="btnTransfer" disabled>Transferencia</button>
+        </div>
+        <button class="btn btn-outline btn-block mt-1 btn-sm" onclick="limpiarCarrito()" id="btnLimpiar" disabled>Limpiar carrito</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pos-footer">
+    <img src="https://assets.cdn.filesafe.space/iWSBkh3VCIJBwdzx9avI/media/6966c8b04d18c570732100ca.png" alt="Duchesne Consulting">
+    <span>&copy; 2026 Duchesne Consulting SAS</span>
+  </div>
+
+  <!-- Modal Abrir Caja -->
+  <div class="modal-overlay" id="modalAbrirCaja">
+    <div class="modal">
+      <div class="modal-header">Abrir caja<button class="modal-close" onclick="cerrarModal('modalAbrirCaja')">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Monto de apertura (efectivo en caja)</label>
+          <input type="number" class="form-input" id="montoApertura" value="0" min="0" step="100">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="cerrarModal('modalAbrirCaja')">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmarAbrirCaja()">Abrir caja</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cerrar Caja / Arqueo -->
+  <div class="modal-overlay" id="modalCerrarCaja">
+    <div class="modal">
+      <div class="modal-header">Arqueo y cierre de caja<button class="modal-close" onclick="cerrarModal('modalCerrarCaja')">&times;</button></div>
+      <div class="modal-body">
+        <div class="stats-grid" style="grid-template-columns:1fr 1fr;margin-bottom:1rem">
+          <div class="stat-card primary">
+            <div class="stat-label">Ventas efectivo</div>
+            <div class="stat-value" id="resumenEfectivo">$0</div>
+          </div>
+          <div class="stat-card gold">
+            <div class="stat-label">Ventas transferencia</div>
+            <div class="stat-value" id="resumenTransfer">$0</div>
+          </div>
+        </div>
+        <div class="stat-card info mb-2">
+          <div class="stat-label">Monto esperado en caja</div>
+          <div class="stat-value" id="resumenEsperado">$0</div>
+          <div class="stat-sub">Apertura + ventas en efectivo</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cuanto efectivo tiene realmente en caja? Cuente bien.</label>
+          <input type="number" class="form-input" id="montoCierreReal" min="0" step="100" style="font-size:1.2rem;font-weight:700;text-align:center">
+        </div>
+        <div id="diferenciaCaja" class="stat-card" style="display:none">
+          <div class="stat-label">Diferencia</div>
+          <div class="stat-value" id="diferenciaMonto">$0</div>
+          <div class="stat-sub" id="diferenciaTexto"></div>
+        </div>
+        <div class="form-group mt-1">
+          <label class="form-label">Notas (opcional)</label>
+          <input type="text" class="form-input" id="notasCierre" placeholder="Observaciones del cierre">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="cerrarModal('modalCerrarCaja')">Cancelar</button>
+        <button class="btn btn-danger" onclick="confirmarCerrarCaja()">Cerrar caja</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Historial -->
+  <div class="modal-overlay" id="modalHistorial">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header">Ventas del dia<button class="modal-close" onclick="cerrarModal('modalHistorial')">&times;</button></div>
+      <div class="modal-body">
+        <div class="table-wrapper" id="historialBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Inventario -->
+  <div class="modal-overlay" id="modalInventario">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header">Registrar entrada de inventario<button class="modal-close" onclick="cerrarModal('modalInventario')">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Producto</label>
+          <select class="form-select" id="invProducto"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cantidad a agregar</label>
+          <input type="number" class="form-input" id="invCantidad" min="1" value="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Motivo</label>
+          <input type="text" class="form-input" id="invMotivo" value="Reposicion" placeholder="Reposicion, compra, donacion...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="cerrarModal('modalInventario')">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmarEntrada()">Registrar entrada</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toasts"></div>
+
+  <script>
+    const API = '';
+    let token = localStorage.getItem('token');
+    let user = JSON.parse(localStorage.getItem('user') || 'null');
+    let productos = [];
+    let carrito = [];
+    let cajaActual = null;
+    let categoriaActiva = 'todas';
+
+    if (!token) window.location.href = '/';
+
+    const headers = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` });
+    const fmt = n => '$' + Number(n||0).toLocaleString('es-CO', {minimumFractionDigits:0, maximumFractionDigits:0});
+
+    function toast(msg, type = 'success') {
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.textContent = msg;
+      document.getElementById('toasts').appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+
+    function cerrarModal(id) { document.getElementById(id).classList.remove('active'); }
+    function abrirModal(id) { document.getElementById(id).classList.add('active'); }
+    function cerrarSesion() { localStorage.clear(); window.location.href = '/'; }
+
+    async function api(url, opts = {}) {
+      const res = await fetch(API + url, { ...opts, headers: headers() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error');
+      return data;
+    }
+
+    async function cargarProductos() {
+      productos = await api('/api/productos?activo=1');
+      renderCategorias();
+      renderProductos();
+    }
+
+    function renderCategorias() {
+      const cats = ['todas', ...new Set(productos.map(p => p.categoria))];
+      document.getElementById('filtrosCat').innerHTML = cats.map(c =>
+        `<button class="filtro-cat ${c === categoriaActiva ? 'active' : ''}" onclick="filtrarCat('${c}')">${c.charAt(0).toUpperCase() + c.slice(1)}</button>`
+      ).join('');
+    }
+
+    function filtrarCat(cat) {
+      categoriaActiva = cat;
+      renderCategorias();
+      renderProductos();
+    }
+
+    function renderProductos() {
+      const filtered = categoriaActiva === 'todas' ? productos : productos.filter(p => p.categoria === categoriaActiva);
+      document.getElementById('productosGrid').innerHTML = filtered.map(p => `
+        <button class="producto-btn ${p.stock_actual <= 0 ? 'sin-stock' : ''}"
+          onclick="${p.stock_actual > 0 ? `agregarAlCarrito(${p.id})` : ''}"
+          title="${p.nombre} - Stock: ${p.stock_actual}">
+          <span class="p-nombre">${p.nombre}</span>
+          <span class="p-precio">${fmt(p.precio_venta)}</span>
+          <span class="p-stock">${p.stock_actual > 0 ? `${p.stock_actual} disp.` : 'Agotado'}</span>
+        </button>
+      `).join('');
+    }
+
+    function agregarAlCarrito(id) {
+      if (!cajaActual) { toast('Debe abrir caja primero', 'error'); return; }
+      const prod = productos.find(p => p.id === id);
+      if (!prod) return;
+      const existing = carrito.find(c => c.producto_id === id);
+      if (existing) {
+        if (existing.cantidad >= prod.stock_actual) { toast('Stock insuficiente', 'error'); return; }
+        existing.cantidad++;
+      } else {
+        carrito.push({ producto_id: id, nombre: prod.nombre, precio: prod.precio_venta, cantidad: 1, stock: prod.stock_actual });
+      }
+      renderCarrito();
+    }
+
+    function cambiarCantidad(id, delta) {
+      const item = carrito.find(c => c.producto_id === id);
+      if (!item) return;
+      item.cantidad += delta;
+      if (item.cantidad <= 0) { carrito = carrito.filter(c => c.producto_id !== id); }
+      else if (item.cantidad > item.stock) { item.cantidad = item.stock; toast('Stock maximo alcanzado', 'info'); }
+      renderCarrito();
+    }
+
+    function quitarDelCarrito(id) {
+      carrito = carrito.filter(c => c.producto_id !== id);
+      renderCarrito();
+    }
+
+    function limpiarCarrito() { carrito = []; renderCarrito(); }
+
+    function renderCarrito() {
+      const container = document.getElementById('carritoItems');
+      const total = carrito.reduce((s, c) => s + c.precio * c.cantidad, 0);
+
+      if (carrito.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Seleccione productos para vender</p></div>';
+      } else {
+        container.innerHTML = carrito.map(c => `
+          <div class="carrito-item">
+            <span class="ci-nombre">${c.nombre}</span>
+            <span class="ci-qty">
+              <button onclick="cambiarCantidad(${c.producto_id},-1)">-</button>
+              <span>${c.cantidad}</span>
+              <button onclick="cambiarCantidad(${c.producto_id},1)">+</button>
+            </span>
+            <span class="ci-subtotal">${fmt(c.precio * c.cantidad)}</span>
+            <button class="ci-remove" onclick="quitarDelCarrito(${c.producto_id})">&times;</button>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('carritoTotal').textContent = fmt(total);
+      document.getElementById('carritoCount').textContent = `(${carrito.length})`;
+      document.getElementById('btnEfectivo').disabled = carrito.length === 0 || !cajaActual;
+      document.getElementById('btnTransfer').disabled = carrito.length === 0 || !cajaActual;
+      document.getElementById('btnLimpiar').disabled = carrito.length === 0;
+    }
+
+    async function cobrar(metodo) {
+      if (carrito.length === 0) return;
+      try {
+        const items = carrito.map(c => ({ producto_id: c.producto_id, cantidad: c.cantidad }));
+        const venta = await api('/api/ventas', { method: 'POST', body: JSON.stringify({ items, metodo_pago: metodo }) });
+        toast(`Venta registrada: ${fmt(venta.total)} (${metodo.toLowerCase()})`);
+        carrito = [];
+        renderCarrito();
+        await cargarProductos();
+        await verificarCaja();
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    }
+
+    async function verificarCaja() {
+      try {
+        const data = await api('/api/caja/actual');
+        if (data.abierta) {
+          cajaActual = data.caja;
+          document.getElementById('cajaInfo').textContent = `Caja abierta | Ventas: ${fmt(data.ventas.monto_total)} (${data.ventas.total_ventas} ventas)`;
+          document.getElementById('btnCaja').textContent = 'Cerrar caja';
+          document.getElementById('btnCaja').className = 'btn btn-sm btn-danger';
+        } else {
+          cajaActual = null;
+          document.getElementById('cajaInfo').textContent = 'Caja: Sin abrir';
+          document.getElementById('btnCaja').textContent = 'Abrir caja';
+          document.getElementById('btnCaja').className = 'btn btn-sm btn-gold';
+        }
+        renderCarrito();
+      } catch (e) { console.error(e); }
+    }
+
+    function toggleCaja() {
+      if (cajaActual) {
+        document.getElementById('resumenEfectivo').textContent = fmt(cajaActual.total_ventas_efectivo);
+        document.getElementById('resumenTransfer').textContent = fmt(cajaActual.total_ventas_transferencia);
+        const esperado = cajaActual.monto_apertura + cajaActual.total_ventas_efectivo;
+        document.getElementById('resumenEsperado').textContent = fmt(esperado);
+        document.getElementById('montoCierreReal').value = '';
+        document.getElementById('notasCierre').value = '';
+        document.getElementById('diferenciaCaja').style.display = 'none';
+        abrirModal('modalCerrarCaja');
+      } else {
+        document.getElementById('montoApertura').value = 0;
+        abrirModal('modalAbrirCaja');
+      }
+    }
+
+    async function confirmarAbrirCaja() {
+      try {
+        await api('/api/caja/abrir', { method: 'POST', body: JSON.stringify({ monto_apertura: Number(document.getElementById('montoApertura').value) || 0 }) });
+        cerrarModal('modalAbrirCaja');
+        toast('Caja abierta correctamente');
+        await verificarCaja();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    document.getElementById('montoCierreReal').addEventListener('input', function() {
+      const real = Number(this.value) || 0;
+      const esperado = cajaActual.monto_apertura + cajaActual.total_ventas_efectivo;
+      const dif = real - esperado;
+      const el = document.getElementById('diferenciaCaja');
+      el.style.display = 'block';
+      document.getElementById('diferenciaMonto').textContent = fmt(Math.abs(dif));
+      const texto = document.getElementById('diferenciaTexto');
+      if (Math.abs(dif) < 1) {
+        el.className = 'stat-card success'; texto.textContent = 'La caja cuadra perfectamente';
+      } else if (dif > 0) {
+        el.className = 'stat-card gold'; texto.textContent = `Sobrante de ${fmt(dif)}`;
+      } else {
+        el.className = 'stat-card danger'; texto.textContent = `Faltante de ${fmt(Math.abs(dif))}`;
+      }
+    });
+
+    async function confirmarCerrarCaja() {
+      const real = Number(document.getElementById('montoCierreReal').value);
+      if (!real && real !== 0) { toast('Ingrese el monto real', 'error'); return; }
+      try {
+        const res = await api('/api/caja/cerrar', {
+          method: 'POST',
+          body: JSON.stringify({ monto_cierre_real: real, notas: document.getElementById('notasCierre').value })
+        });
+        cerrarModal('modalCerrarCaja');
+        const dif = res.caja.diferencia;
+        if (Math.abs(dif) < 1) toast('Caja cerrada. Cuadra perfectamente.');
+        else if (dif > 0) toast(`Caja cerrada. Sobrante: ${fmt(dif)}`, 'info');
+        else toast(`Caja cerrada. Faltante: ${fmt(Math.abs(dif))}`, 'error');
+        await verificarCaja();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function abrirHistorial() {
+      try {
+        const hoy = new Date().toISOString().split('T')[0];
+        const ventas = await api(`/api/ventas?fecha=${hoy}`);
+        const body = document.getElementById('historialBody');
+        if (ventas.length === 0) {
+          body.innerHTML = '<div class="empty-state"><p>No hay ventas hoy</p></div>';
+        } else {
+          body.innerHTML = `<table>
+            <thead><tr><th>#</th><th>Hora</th><th>Total</th><th>Pago</th><th>Estado</th></tr></thead>
+            <tbody>${ventas.map(v => `<tr>
+              <td>${v.id}</td>
+              <td>${new Date(v.fecha).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}</td>
+              <td class="tabular text-right">${fmt(v.total)}</td>
+              <td><span class="badge ${v.metodo_pago==='EFECTIVO'?'badge-primary':'badge-gold'}">${v.metodo_pago}</span></td>
+              <td>${v.anulada ? '<span class="badge badge-danger">Anulada</span>' : '<span class="badge badge-success">OK</span>'}</td>
+            </tr>`).join('')}</tbody>
+          </table>`;
+        }
+        abrirModal('modalHistorial');
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function abrirInventario() {
+      const select = document.getElementById('invProducto');
+      select.innerHTML = productos.map(p => `<option value="${p.id}">${p.nombre} (stock: ${p.stock_actual})</option>`).join('');
+      document.getElementById('invCantidad').value = 1;
+      document.getElementById('invMotivo').value = 'Reposicion';
+      abrirModal('modalInventario');
+    }
+
+    async function confirmarEntrada() {
+      try {
+        await api('/api/inventario/entrada', {
+          method: 'POST',
+          body: JSON.stringify({
+            producto_id: Number(document.getElementById('invProducto').value),
+            cantidad: Number(document.getElementById('invCantidad').value),
+            motivo: document.getElementById('invMotivo').value
+          })
+        });
+        cerrarModal('modalInventario');
+        toast('Entrada registrada');
+        await cargarProductos();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // Init
+    document.getElementById('userName').textContent = user?.nombre || '';
+    cargarProductos();
+    verificarCaja();
+  </script>
+</body>
+</html>

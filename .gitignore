@@ -1,0 +1,5 @@
+node_modules/
+meriendas.db
+.env
+*.log
+.DS_Store
