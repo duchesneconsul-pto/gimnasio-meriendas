@@ -751,6 +751,7 @@ tr:hover td { background: rgba(26,35,126,0.015); }
 }
 .sidebar-backdrop.active { display: block; }
 
+/* ── Tablet (768px) ── */
 @media (max-width: 768px) {
   .app { flex-direction: column; }
   .mobile-header { display: flex; }
@@ -761,8 +762,100 @@ tr:hover td { background: rgba(26,35,126,0.015); }
   }
   .sidebar.open { transform: translateX(0); }
   .main-content { margin-left: 0; padding: 1rem; }
-  .pos-layout { grid-template-columns: 1fr; height: auto; }
+  .pos-layout { grid-template-columns: 1fr; height: auto; min-height: 0; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .form-row { grid-template-columns: 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
+
+  .page-header { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+  .page-header h1 { font-size: 1.25rem; }
+
+  table { font-size: 0.78rem; }
+  th, td { padding: 0.5rem 0.5rem; }
+
+  .modal { width: 95%; max-height: 90vh; }
+
+  .pos-header { height: auto; padding: 0.6rem 0.75rem; flex-wrap: wrap; gap: 0.5rem; }
+  .pos-header h1 { font-size: 0.9rem; }
+  .pos-header-logo { height: 32px; width: 32px; }
+  .pos-header-actions { gap: 0.35rem !important; flex-wrap: wrap !important; justify-content: flex-end; }
+  .pos-header-actions .btn { padding: 0.35rem 0.5rem; font-size: 0.72rem; }
+  .pos-header-actions .btn svg { margin-right: 2px !important; }
+
+  .carrito-items { max-height: 200px; }
+  .pago-btns { flex-wrap: wrap; }
+  .pago-btns .btn { font-size: 0.78rem; padding: 0.5rem 0.6rem; }
+
+  .productos-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.5rem; padding: 0.5rem; }
+  .producto-btn { padding: 0.6rem 0.4rem; min-height: 75px; }
+  .producto-btn .p-nombre { font-size: 0.72rem; }
+  .producto-btn .p-precio { font-size: 0.8rem; }
+  .producto-btn .p-img { width: 36px; height: 36px; }
+
+  .login-card { padding: 2rem 1.5rem; margin: 1rem; }
+  .login-logo { width: 220px; }
+}
+
+/* ── Phone (480px) ── */
+@media (max-width: 480px) {
+  .main-content { padding: 0.75rem; }
+  .page-header h1 { font-size: 1.1rem; }
+  .page-header-actions { width: 100%; }
+  .page-header-actions .btn { flex: 1; justify-content: center; font-size: 0.78rem; }
+
+  .stats-grid { grid-template-columns: 1fr; }
+  .stat-card .stat-value { font-size: 1.2rem; }
+
+  table { font-size: 0.72rem; }
+  th, td { padding: 0.4rem 0.35rem; }
+  .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.72rem; }
+
+  .card-header { padding: 0.7rem 0.85rem; font-size: 0.82rem; }
+  .card-body { padding: 0.85rem; }
+
+  .modal { width: 100%; max-width: 100%; border-radius: var(--radius) var(--radius) 0 0; max-height: 95vh; }
+  .modal-header { padding: 0.85rem 1rem; font-size: 0.92rem; }
+  .modal-body { padding: 1rem; }
+  .modal-footer { padding: 0.75rem 1rem; }
+
+  .pos-layout { padding: 0.4rem !important; gap: 0.5rem; }
+  .pos-header { padding: 0.5rem 0.6rem; }
+  .pos-header h1 { font-size: 0.82rem; }
+  .pos-header .caja-info { font-size: 0.68rem; }
+  .pos-header-brand { min-width: 0; }
+  .pos-header-actions { width: 100% !important; }
+  .pos-header-actions .btn { flex: 1; justify-content: center; min-width: 0; }
+  .pos-header-actions #userName { width: 100%; text-align: right; font-size: 0.72rem !important; }
+
+  .productos-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 0.4rem; padding: 0.4rem; }
+  .producto-btn { padding: 0.5rem 0.3rem; min-height: 65px; }
+  .producto-btn .p-nombre { font-size: 0.68rem; }
+  .producto-btn .p-precio { font-size: 0.75rem; }
+  .producto-btn .p-stock { font-size: 0.6rem; }
+  .producto-btn .p-img { width: 32px; height: 32px; }
+
+  .filtros-cat { padding: 0.4rem; gap: 0.3rem; }
+  .filtro-cat { padding: 0.3rem 0.65rem; font-size: 0.7rem; }
+
+  .carrito-header { padding: 0.6rem 0.75rem; font-size: 0.85rem; }
+  .carrito-item { padding: 0.45rem 0.6rem; font-size: 0.78rem; gap: 0.35rem; }
+  .carrito-item .ci-qty button { width: 28px; height: 28px; }
+  .carrito-item .ci-subtotal { min-width: 55px; font-size: 0.78rem; }
+  .carrito-items { max-height: 180px; }
+  .carrito-footer { padding: 0.6rem 0.75rem; }
+  .carrito-total { font-size: 1.1rem; margin-bottom: 0.6rem; }
+  .pago-btns .btn { font-size: 0.75rem; padding: 0.45rem 0.4rem; }
+
+  .toast-container { top: 0.5rem; right: 0.5rem; left: 0.5rem; }
+  .toast { max-width: 100%; font-size: 0.82rem; }
+
+  .login-card { padding: 1.5rem 1.25rem; margin: 0.75rem; }
+  .login-logo { width: 180px; }
+  .login-card h1 { font-size: 1.2rem; }
+
+  .pos-footer { padding: 0.3rem 0.6rem; font-size: 0.6rem; }
+
+  #barcodeInput { font-size: 0.8rem !important; }
+  .empty-state { padding: 2rem 0.75rem; }
+  .empty-state p { font-size: 0.82rem; }
 }
