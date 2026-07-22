@@ -43,6 +43,7 @@
         <div class="pago-btns">
           <button class="btn btn-primary" id="btnEfectivo" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Efectivo</button>
           <button class="btn btn-gold" id="btnTransfer" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Transferencia</button>
+          <button class="btn btn-outline" id="btnCredito" disabled style="color:var(--danger);border-color:var(--danger)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Credito</button>
         </div>
         <button class="btn btn-outline btn-block mt-1 btn-sm" id="btnLimpiar" disabled>Limpiar carrito</button>
       </div>
@@ -139,6 +140,38 @@
       <div class="modal-footer">
         <button class="btn btn-outline" data-close="modalInventario">Cancelar</button>
         <button class="btn btn-primary" id="btnConfirmarEntrada">Registrar entrada</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalCredito">
+    <div class="modal" style="max-width:400px">
+      <div class="modal-header">Venta a credito<button class="modal-close" data-close="modalCredito">&times;</button></div>
+      <div class="modal-body">
+        <div class="stat-card info mb-2">
+          <div class="stat-label">Total a fiar</div>
+          <div class="stat-value" id="credTotal">$0</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre del cliente</label>
+          <input type="text" class="form-input" id="credNombre" placeholder="Ej: Prof. Martinez, Alumno Garcia">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-select" id="credTipo">
+            <option value="profesor">Profesor</option>
+            <option value="alumno">Alumno</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notas (opcional)</label>
+          <input type="text" class="form-input" id="credNotas" placeholder="Observaciones">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-close="modalCredito">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmarCredito">Confirmar credito</button>
       </div>
     </div>
   </div>

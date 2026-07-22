@@ -28,6 +28,7 @@
         <button class="nav-item" data-section="inventario"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg></span> Inventario</button>
         <button class="nav-item" data-section="ventas"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Ventas</button>
         <button class="nav-item" data-section="arqueos"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 8v8"/><path d="M8 12h8"/><line x1="6" y1="4" x2="6" y2="20"/><line x1="18" y1="4" x2="18" y2="20"/></svg></span> Arqueos</button>
+        <button class="nav-item" data-section="creditos"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Creditos</button>
         <button class="nav-item" data-section="rentabilidad"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Rentabilidad</button>
         <div class="nav-divider"></div>
         <button class="nav-item" data-section="config"><span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Configuracion</button>
@@ -96,6 +97,19 @@
       <section id="sec-arqueos" class="hidden">
         <div class="page-header"><h1>Historial de arqueos</h1></div>
         <div class="card"><div class="card-body"><div class="table-wrapper"><table id="tablaArqueos"></table></div></div></div>
+      </section>
+
+      <section id="sec-creditos" class="hidden">
+        <div class="page-header"><h1>Creditos / Fiados</h1></div>
+        <div class="stats-grid" id="creditosStats"></div>
+        <div class="card mt-2">
+          <div class="card-header">Creditos pendientes</div>
+          <div class="card-body"><div class="table-wrapper"><table id="tablaCreditos"></table></div></div>
+        </div>
+        <div class="card mt-2">
+          <div class="card-header">Top deudores</div>
+          <div class="card-body"><div id="topDeudores"></div></div>
+        </div>
       </section>
 
       <section id="sec-rentabilidad" class="hidden">
@@ -228,6 +242,42 @@
     <div class="modal" style="max-width:500px">
       <div class="modal-header">Detalle de venta<button class="modal-close" data-close="modalDetalleVenta">&times;</button></div>
       <div class="modal-body" id="detalleVentaBody"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalPagoCredito">
+    <div class="modal" style="max-width:400px">
+      <div class="modal-header">Registrar abono<button class="modal-close" data-close="modalPagoCredito">&times;</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="pagoCredId">
+        <div class="stat-card info mb-2">
+          <div class="stat-label">Saldo pendiente</div>
+          <div class="stat-value" id="pagoCredSaldo">$0</div>
+          <div class="stat-sub" id="pagoCredCliente"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Monto del abono</label>
+          <input type="number" class="form-input" id="pagoCredMonto" min="1" step="100" style="font-size:1.1rem;font-weight:700;text-align:center">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Metodo de pago</label>
+          <select class="form-select" id="pagoCredMetodo">
+            <option value="EFECTIVO">Efectivo</option>
+            <option value="TRANSFERENCIA">Transferencia</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-close="modalPagoCredito">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmarPagoCredito">Registrar abono</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalDetalleCredito">
+    <div class="modal" style="max-width:500px">
+      <div class="modal-header">Detalle de credito<button class="modal-close" data-close="modalDetalleCredito">&times;</button></div>
+      <div class="modal-body" id="detalleCreditoBody"></div>
     </div>
   </div>
 

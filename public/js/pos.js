@@ -49,6 +49,7 @@
   // ── Payment buttons ──
   document.getElementById('btnEfectivo').addEventListener('click', function() { cobrar('EFECTIVO'); });
   document.getElementById('btnTransfer').addEventListener('click', function() { cobrar('TRANSFERENCIA'); });
+  document.getElementById('btnCredito').addEventListener('click', function() { abrirModalCredito(); });
   document.getElementById('btnLimpiar').addEventListener('click', function() { carrito = []; renderCarrito(); });
 
   // ── Modal action buttons ──
@@ -142,6 +143,7 @@
     document.getElementById('carritoCount').textContent = '(' + carrito.length + ')';
     document.getElementById('btnEfectivo').disabled = carrito.length === 0 || !cajaActual;
     document.getElementById('btnTransfer').disabled = carrito.length === 0 || !cajaActual;
+    document.getElementById('btnCredito').disabled = carrito.length === 0 || !cajaActual;
     document.getElementById('btnLimpiar').disabled = carrito.length === 0;
   }
 
@@ -298,6 +300,41 @@
       return cargarProductos();
     }).catch(function(e) { toast(e.message, 'error'); });
   }
+
+  // ── Credito ──
+  function abrirModalCredito() {
+    if (carrito.length === 0) return;
+    var total = carrito.reduce(function(s, c) { return s + c.precio * c.cantidad; }, 0);
+    document.getElementById('credTotal').textContent = fmt(total);
+    document.getElementById('credNombre').value = '';
+    document.getElementById('credTipo').value = 'profesor';
+    document.getElementById('credNotas').value = '';
+    abrirModal('modalCredito');
+  }
+
+  document.getElementById('btnConfirmarCredito').addEventListener('click', function() {
+    var nombre = document.getElementById('credNombre').value.trim();
+    if (!nombre) { toast('Ingrese el nombre del cliente', 'error'); return; }
+    var items = carrito.map(function(c) { return { producto_id: c.producto_id, cantidad: c.cantidad }; });
+    var total = carrito.reduce(function(s, c) { return s + c.precio * c.cantidad; }, 0);
+    api('/api/creditos', {
+      method: 'POST',
+      body: JSON.stringify({
+        nombre_cliente: nombre,
+        tipo_cliente: document.getElementById('credTipo').value,
+        monto: total,
+        notas: document.getElementById('credNotas').value,
+        items: items,
+        caja_id: cajaActual ? cajaActual.id : null
+      })
+    }).then(function() {
+      cerrarModal('modalCredito');
+      toast('Credito registrado para ' + nombre);
+      carrito = [];
+      renderCarrito();
+      return cargarProductos().then(verificarCaja);
+    }).catch(function(e) { toast(e.message, 'error'); });
+  });
 
   // ── Init ──
   document.getElementById('userName').textContent = (user && user.nombre) || '';

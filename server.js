@@ -62,6 +62,7 @@ async function start() {
   app.use('/api/ventas', require('./routes/ventas'));
   app.use('/api/caja', require('./routes/caja'));
   app.use('/api/reportes', require('./routes/reportes'));
+  app.use('/api/creditos', require('./routes/creditos'));
 
   app.use((err, req, res, next) => {
     console.error('Error:', err.message);

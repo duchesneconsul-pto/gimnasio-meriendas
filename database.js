@@ -145,7 +145,7 @@ async function initDb() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       fecha TEXT DEFAULT (datetime('now', 'localtime')),
       total REAL NOT NULL,
-      metodo_pago TEXT NOT NULL CHECK(metodo_pago IN ('EFECTIVO', 'TRANSFERENCIA')),
+      metodo_pago TEXT NOT NULL CHECK(metodo_pago IN ('EFECTIVO', 'TRANSFERENCIA', 'CREDITO')),
       cajero_id INTEGER NOT NULL,
       caja_id INTEGER NOT NULL,
       anulada INTEGER DEFAULT 0,
@@ -167,6 +167,33 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS config (
       clave TEXT PRIMARY KEY,
       valor TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS creditos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre_cliente TEXT NOT NULL,
+      tipo_cliente TEXT NOT NULL DEFAULT 'profesor' CHECK(tipo_cliente IN ('profesor', 'alumno', 'otro')),
+      monto REAL NOT NULL,
+      saldo_pendiente REAL NOT NULL,
+      venta_id INTEGER,
+      cajero_id INTEGER NOT NULL,
+      caja_id INTEGER,
+      estado TEXT DEFAULT 'PENDIENTE' CHECK(estado IN ('PENDIENTE', 'PAGADO', 'PARCIAL')),
+      notas TEXT,
+      fecha TEXT DEFAULT (datetime('now', 'localtime')),
+      FOREIGN KEY (venta_id) REFERENCES ventas(id),
+      FOREIGN KEY (cajero_id) REFERENCES usuarios(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS pagos_credito (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      credito_id INTEGER NOT NULL,
+      monto REAL NOT NULL,
+      metodo_pago TEXT NOT NULL CHECK(metodo_pago IN ('EFECTIVO', 'TRANSFERENCIA')),
+      cajero_id INTEGER NOT NULL,
+      fecha TEXT DEFAULT (datetime('now', 'localtime')),
+      FOREIGN KEY (credito_id) REFERENCES creditos(id),
+      FOREIGN KEY (cajero_id) REFERENCES usuarios(id)
     );
   `);
 

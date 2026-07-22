@@ -62,7 +62,7 @@
   }
 
   function loadSection(name) {
-    var loaders = { dashboard: cargarDashboard, productos: cargarProductos, inventario: cargarMovimientos, ventas: cargarVentas, arqueos: cargarArqueos, rentabilidad: cargarRentabilidad, config: cargarConfig };
+    var loaders = { dashboard: cargarDashboard, productos: cargarProductos, inventario: cargarMovimientos, ventas: cargarVentas, arqueos: cargarArqueos, creditos: cargarCreditos, rentabilidad: cargarRentabilidad, config: cargarConfig };
     if (loaders[name]) loaders[name]();
   }
 
@@ -351,12 +351,13 @@
 
     api('/api/auth/usuarios').then(function(usuarios) {
       document.getElementById('tablaUsuarios').innerHTML =
-        '<thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estado</th></tr></thead>' +
+        '<thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estado</th><th></th></tr></thead>' +
         '<tbody>' + usuarios.map(function(u) {
           return '<tr>' +
             '<td style="font-weight:500">' + u.nombre + '</td><td>' + u.usuario + '</td>' +
             '<td><span class="badge ' + (u.rol==='admin'?'badge-gold':'badge-primary') + '">' + u.rol + '</span></td>' +
-            '<td>' + (u.activo ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>') + '</td></tr>';
+            '<td>' + (u.activo ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>') + '</td>' +
+            '<td>' + (u.activo ? '<button class="btn btn-danger btn-sm" data-del-user="' + u.id + '">Eliminar</button>' : '') + '</td></tr>';
         }).join('') + '</tbody>';
     }).catch(function(e) { toast(e.message, 'error'); });
   }
@@ -389,6 +390,111 @@
       cerrarModal('modalUsuario');
       toast('Usuario creado');
       cargarConfig();
+    }).catch(function(e) { toast(e.message, 'error'); });
+  });
+
+  // ── User delete delegation ──
+  document.getElementById('tablaUsuarios').addEventListener('click', function(e) {
+    var delBtn = e.target.closest('[data-del-user]');
+    if (delBtn) {
+      if (!confirm('Desactivar este usuario?')) return;
+      api('/api/auth/usuarios/' + delBtn.getAttribute('data-del-user'), { method: 'DELETE' }).then(function() {
+        toast('Usuario desactivado');
+        cargarConfig();
+      }).catch(function(e) { toast(e.message, 'error'); });
+    }
+  });
+
+  // ── Creditos ──
+  function cargarCreditos() {
+    api('/api/creditos/resumen').then(function(r) {
+      document.getElementById('creditosStats').innerHTML =
+        '<div class="stat-card danger"><div class="stat-label">Total pendiente</div><div class="stat-value">' + fmt(r.total_pendiente) + '</div><div class="stat-sub">' + r.total_creditos + ' creditos</div></div>' +
+        '<div class="stat-card success"><div class="stat-label">Creditos pagados</div><div class="stat-value">' + (r.pagados || 0) + '</div></div>' +
+        '<div class="stat-card gold"><div class="stat-label">Creditos activos</div><div class="stat-value">' + (r.activos || 0) + '</div></div>';
+    }).catch(function() {});
+
+    api('/api/creditos?estado=PENDIENTE').then(function(creditos) {
+      api('/api/creditos?estado=PARCIAL').then(function(parciales) {
+        var todos = creditos.concat(parciales);
+        document.getElementById('tablaCreditos').innerHTML =
+          '<thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo</th><th class="text-right">Monto</th><th class="text-right">Pendiente</th><th>Estado</th><th></th></tr></thead>' +
+          '<tbody>' + (todos.length === 0 ? '<tr><td colspan="7" style="text-align:center;color:var(--text-muted)">No hay creditos pendientes</td></tr>' : todos.map(function(c) {
+            var estadoClass = c.estado === 'PENDIENTE' ? 'badge-danger' : 'badge-gold';
+            return '<tr>' +
+              '<td>' + new Date(c.fecha).toLocaleDateString('es-CO') + '</td>' +
+              '<td style="font-weight:500">' + c.nombre_cliente + '</td>' +
+              '<td><span class="badge badge-primary">' + c.tipo_cliente + '</span></td>' +
+              '<td class="text-right tabular">' + fmt(c.monto) + '</td>' +
+              '<td class="text-right tabular" style="font-weight:700;color:var(--danger)">' + fmt(c.saldo_pendiente) + '</td>' +
+              '<td><span class="badge ' + estadoClass + '">' + c.estado + '</span></td>' +
+              '<td>' +
+                '<button class="btn btn-primary btn-sm" data-abonar-cred="' + c.id + '" data-saldo="' + c.saldo_pendiente + '" data-cliente="' + c.nombre_cliente + '">Abonar</button> ' +
+                '<button class="btn btn-outline btn-sm" data-ver-cred="' + c.id + '">Ver</button>' +
+              '</td></tr>';
+          }).join('')) + '</tbody>';
+      });
+    }).catch(function(e) { toast(e.message, 'error'); });
+
+    api('/api/creditos/resumen').then(function(r) {
+      if (r.top_deudores && r.top_deudores.length > 0) {
+        document.getElementById('topDeudores').innerHTML =
+          '<table><thead><tr><th>Cliente</th><th class="text-right">Deuda total</th><th class="text-right">Creditos</th></tr></thead>' +
+          '<tbody>' + r.top_deudores.map(function(d) {
+            return '<tr><td style="font-weight:500">' + d.nombre_cliente + '</td><td class="text-right tabular" style="color:var(--danger);font-weight:700">' + fmt(d.total) + '</td><td class="text-right">' + d.cantidad + '</td></tr>';
+          }).join('') + '</tbody></table>';
+      } else {
+        document.getElementById('topDeudores').innerHTML = '<p style="color:var(--text-muted)">No hay deudores</p>';
+      }
+    }).catch(function() {});
+  }
+
+  // Creditos delegation
+  document.getElementById('tablaCreditos').addEventListener('click', function(e) {
+    var abonarBtn = e.target.closest('[data-abonar-cred]');
+    if (abonarBtn) {
+      document.getElementById('pagoCredId').value = abonarBtn.getAttribute('data-abonar-cred');
+      document.getElementById('pagoCredSaldo').textContent = fmt(Number(abonarBtn.getAttribute('data-saldo')));
+      document.getElementById('pagoCredCliente').textContent = abonarBtn.getAttribute('data-cliente');
+      document.getElementById('pagoCredMonto').value = '';
+      document.getElementById('pagoCredMonto').max = abonarBtn.getAttribute('data-saldo');
+      abrirModal('modalPagoCredito');
+      return;
+    }
+    var verBtn = e.target.closest('[data-ver-cred]');
+    if (verBtn) {
+      api('/api/creditos/' + verBtn.getAttribute('data-ver-cred')).then(function(c) {
+        var pagosHtml = '';
+        if (c.pagos && c.pagos.length > 0) {
+          pagosHtml = '<h4 style="margin:1rem 0 0.5rem;font-size:0.9rem">Abonos realizados</h4>' +
+            '<table><thead><tr><th>Fecha</th><th>Metodo</th><th class="text-right">Monto</th></tr></thead><tbody>' +
+            c.pagos.map(function(p) {
+              return '<tr><td>' + new Date(p.fecha).toLocaleDateString('es-CO') + '</td><td><span class="badge ' + (p.metodo_pago==='EFECTIVO'?'badge-primary':'badge-gold') + '">' + p.metodo_pago + '</span></td><td class="text-right tabular">' + fmt(p.monto) + '</td></tr>';
+            }).join('') + '</tbody></table>';
+        }
+        document.getElementById('detalleCreditoBody').innerHTML =
+          '<div class="flex-between mb-1"><strong>' + c.nombre_cliente + '</strong><span class="badge badge-primary">' + c.tipo_cliente + '</span></div>' +
+          '<p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem">' + new Date(c.fecha).toLocaleDateString('es-CO') + (c.notas ? ' — ' + c.notas : '') + '</p>' +
+          '<div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr">' +
+            '<div class="stat-card info"><div class="stat-label">Monto total</div><div class="stat-value">' + fmt(c.monto) + '</div></div>' +
+            '<div class="stat-card ' + (c.saldo_pendiente > 0 ? 'danger' : 'success') + '"><div class="stat-label">Pendiente</div><div class="stat-value">' + fmt(c.saldo_pendiente) + '</div></div>' +
+            '<div class="stat-card success"><div class="stat-label">Abonado</div><div class="stat-value">' + fmt(c.monto - c.saldo_pendiente) + '</div></div>' +
+          '</div>' + pagosHtml;
+        abrirModal('modalDetalleCredito');
+      }).catch(function(e) { toast(e.message, 'error'); });
+    }
+  });
+
+  document.getElementById('btnConfirmarPagoCredito').addEventListener('click', function() {
+    var monto = Number(document.getElementById('pagoCredMonto').value);
+    if (!monto || monto <= 0) { toast('Ingrese un monto valido', 'error'); return; }
+    api('/api/creditos/' + document.getElementById('pagoCredId').value + '/pago', {
+      method: 'POST',
+      body: JSON.stringify({ monto: monto, metodo_pago: document.getElementById('pagoCredMetodo').value })
+    }).then(function() {
+      cerrarModal('modalPagoCredito');
+      toast('Abono registrado');
+      cargarCreditos();
     }).catch(function(e) { toast(e.message, 'error'); });
   });
 
