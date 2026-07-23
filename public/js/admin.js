@@ -523,7 +523,7 @@
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
-        a.download = 'meriendas_backup_' + new Date().toISOString().slice(0,10) + '.db';
+        a.download = 'meriendas_backup_' + new Date().toISOString().slice(0,10) + '.json';
         a.click();
         URL.revokeObjectURL(url);
         toast('Backup descargado');

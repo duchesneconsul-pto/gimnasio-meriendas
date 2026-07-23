@@ -1,108 +1,27 @@
-const initSqlJs = require('sql.js');
-const fs = require('fs');
-const path = require('path');
+const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 
-const DB_DIR = process.env.DB_DIR || __dirname;
-const DB_PATH = path.join(DB_DIR, 'meriendas.db');
-
-let db = null;
-
-class DbWrapper {
-  constructor(sqlDb) { this.db = sqlDb; }
-
-  prepare(sql) {
-    const self = this;
-    return {
-      run(...params) {
-        self.db.run(sql, params);
-        return { lastInsertRowid: self._lastId(), changes: self.db.getRowsModified() };
-      },
-      get(...params) {
-        const stmt = self.db.prepare(sql);
-        stmt.bind(params);
-        if (stmt.step()) {
-          const row = stmt.getAsObject();
-          stmt.free();
-          return row;
-        }
-        stmt.free();
-        return undefined;
-      },
-      all(...params) {
-        const results = [];
-        const stmt = self.db.prepare(sql);
-        stmt.bind(params);
-        while (stmt.step()) results.push(stmt.getAsObject());
-        stmt.free();
-        return results;
-      }
-    };
-  }
-
-  exec(sql) { this.db.exec(sql); }
-
-  _lastId() {
-    const stmt = this.db.prepare('SELECT last_insert_rowid() as id');
-    stmt.step();
-    const row = stmt.getAsObject();
-    stmt.free();
-    return row.id;
-  }
-
-  transaction(fn) {
-    return (...args) => {
-      this.db.run('BEGIN TRANSACTION');
-      try {
-        const result = fn(...args);
-        this.db.run('COMMIT');
-        this._save();
-        return result;
-      } catch (e) {
-        this.db.run('ROLLBACK');
-        throw e;
-      }
-    };
-  }
-
-  _save() {
-    const data = this.db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(DB_PATH, buffer);
-  }
-}
-
-function getDb() {
-  if (!db) throw new Error('Database not initialized. Call initDb() first.');
-  return db;
-}
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('render.com')
+    ? { rejectUnauthorized: false }
+    : false
+});
 
 async function initDb() {
-  const SQL = await initSqlJs();
-
-  let sqlDb;
-  if (fs.existsSync(DB_PATH)) {
-    const buffer = fs.readFileSync(DB_PATH);
-    sqlDb = new SQL.Database(buffer);
-  } else {
-    sqlDb = new SQL.Database();
-  }
-
-  db = new DbWrapper(sqlDb);
-
-  db.exec(`
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS usuarios (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       nombre TEXT NOT NULL,
       usuario TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       rol TEXT NOT NULL CHECK(rol IN ('admin', 'cajero')),
       activo INTEGER DEFAULT 1,
-      creado_en TEXT DEFAULT (datetime('now', 'localtime'))
+      creado_en TIMESTAMP DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS productos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       nombre TEXT NOT NULL,
       codigo_barras TEXT UNIQUE,
       categoria TEXT NOT NULL DEFAULT 'general',
@@ -111,24 +30,23 @@ async function initDb() {
       stock_actual INTEGER NOT NULL DEFAULT 0,
       stock_minimo INTEGER NOT NULL DEFAULT 5,
       activo INTEGER DEFAULT 1,
-      creado_en TEXT DEFAULT (datetime('now', 'localtime'))
+      imagen TEXT,
+      creado_en TIMESTAMP DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS movimientos_inventario (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      producto_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      producto_id INTEGER NOT NULL REFERENCES productos(id),
       tipo TEXT NOT NULL CHECK(tipo IN ('ENTRADA', 'SALIDA', 'AJUSTE')),
       cantidad INTEGER NOT NULL,
       motivo TEXT,
-      usuario_id INTEGER NOT NULL,
-      fecha TEXT DEFAULT (datetime('now', 'localtime')),
-      FOREIGN KEY (producto_id) REFERENCES productos(id),
-      FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+      usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+      fecha TIMESTAMP DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS cajas (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      fecha TEXT DEFAULT (date('now', 'localtime')),
+      id SERIAL PRIMARY KEY,
+      fecha DATE DEFAULT CURRENT_DATE,
       monto_apertura REAL NOT NULL DEFAULT 0,
       monto_cierre_real REAL,
       monto_cierre_esperado REAL,
@@ -136,34 +54,29 @@ async function initDb() {
       total_ventas_efectivo REAL DEFAULT 0,
       total_ventas_transferencia REAL DEFAULT 0,
       estado TEXT NOT NULL DEFAULT 'ABIERTA' CHECK(estado IN ('ABIERTA', 'CERRADA')),
-      cajero_id INTEGER NOT NULL,
+      cajero_id INTEGER NOT NULL REFERENCES usuarios(id),
       notas TEXT,
-      abierta_en TEXT DEFAULT (datetime('now', 'localtime')),
-      cerrada_en TEXT,
-      FOREIGN KEY (cajero_id) REFERENCES usuarios(id)
+      abierta_en TIMESTAMP DEFAULT NOW(),
+      cerrada_en TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS ventas (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      fecha TEXT DEFAULT (datetime('now', 'localtime')),
+      id SERIAL PRIMARY KEY,
+      fecha TIMESTAMP DEFAULT NOW(),
       total REAL NOT NULL,
       metodo_pago TEXT NOT NULL CHECK(metodo_pago IN ('EFECTIVO', 'TRANSFERENCIA', 'CREDITO')),
-      cajero_id INTEGER NOT NULL,
-      caja_id INTEGER NOT NULL,
-      anulada INTEGER DEFAULT 0,
-      FOREIGN KEY (cajero_id) REFERENCES usuarios(id),
-      FOREIGN KEY (caja_id) REFERENCES cajas(id)
+      cajero_id INTEGER NOT NULL REFERENCES usuarios(id),
+      caja_id INTEGER NOT NULL REFERENCES cajas(id),
+      anulada INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS venta_detalles (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      venta_id INTEGER NOT NULL,
-      producto_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      venta_id INTEGER NOT NULL REFERENCES ventas(id),
+      producto_id INTEGER NOT NULL REFERENCES productos(id),
       cantidad INTEGER NOT NULL,
       precio_unitario REAL NOT NULL,
-      subtotal REAL NOT NULL,
-      FOREIGN KEY (venta_id) REFERENCES ventas(id),
-      FOREIGN KEY (producto_id) REFERENCES productos(id)
+      subtotal REAL NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS config (
@@ -172,44 +85,36 @@ async function initDb() {
     );
 
     CREATE TABLE IF NOT EXISTS creditos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       nombre_cliente TEXT NOT NULL,
       tipo_cliente TEXT NOT NULL DEFAULT 'profesor' CHECK(tipo_cliente IN ('profesor', 'alumno', 'otro')),
       monto REAL NOT NULL,
       saldo_pendiente REAL NOT NULL,
-      venta_id INTEGER,
-      cajero_id INTEGER NOT NULL,
-      caja_id INTEGER,
+      venta_id INTEGER REFERENCES ventas(id),
+      cajero_id INTEGER NOT NULL REFERENCES usuarios(id),
+      caja_id INTEGER REFERENCES cajas(id),
       estado TEXT DEFAULT 'PENDIENTE' CHECK(estado IN ('PENDIENTE', 'PAGADO', 'PARCIAL')),
       notas TEXT,
-      fecha TEXT DEFAULT (datetime('now', 'localtime')),
-      FOREIGN KEY (venta_id) REFERENCES ventas(id),
-      FOREIGN KEY (cajero_id) REFERENCES usuarios(id)
+      fecha TIMESTAMP DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS pagos_credito (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      credito_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      credito_id INTEGER NOT NULL REFERENCES creditos(id),
       monto REAL NOT NULL,
       metodo_pago TEXT NOT NULL CHECK(metodo_pago IN ('EFECTIVO', 'TRANSFERENCIA')),
-      cajero_id INTEGER NOT NULL,
-      fecha TEXT DEFAULT (datetime('now', 'localtime')),
-      FOREIGN KEY (credito_id) REFERENCES creditos(id),
-      FOREIGN KEY (cajero_id) REFERENCES usuarios(id)
+      cajero_id INTEGER NOT NULL REFERENCES usuarios(id),
+      fecha TIMESTAMP DEFAULT NOW()
     );
   `);
 
-  try { db.exec('ALTER TABLE productos ADD COLUMN codigo_barras TEXT'); } catch(e) {}
-  try { db.exec('ALTER TABLE productos ADD COLUMN imagen TEXT'); } catch(e) {}
-  try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_productos_barcode ON productos(codigo_barras) WHERE codigo_barras IS NOT NULL'); } catch(e) {}
-
-  const adminExists = db.prepare('SELECT id FROM usuarios WHERE usuario = ?').get('admin');
-  if (!adminExists) {
+  const { rows } = await pool.query("SELECT id FROM usuarios WHERE usuario = 'admin'");
+  if (rows.length === 0) {
     const hash = bcrypt.hashSync('admin123', 10);
-    db.prepare('INSERT INTO usuarios (nombre, usuario, password, rol) VALUES (?, ?, ?, ?)').run('Administrador', 'admin', hash, 'admin');
+    await pool.query('INSERT INTO usuarios (nombre, usuario, password, rol) VALUES ($1, $2, $3, $4)', ['Administrador', 'admin', hash, 'admin']);
 
     const hashCajero = bcrypt.hashSync('cajero123', 10);
-    db.prepare('INSERT INTO usuarios (nombre, usuario, password, rol) VALUES (?, ?, ?, ?)').run('Cajero Principal', 'cajero', hashCajero, 'cajero');
+    await pool.query('INSERT INTO usuarios (nombre, usuario, password, rol) VALUES ($1, $2, $3, $4)', ['Cajero Principal', 'cajero', hashCajero, 'cajero']);
 
     const productos = [
       ['Empanada de carne', 'panaderia', 1200, 2500, 30, 10],
@@ -234,21 +139,18 @@ async function initDb() {
       ['Helado paleta', 'postres', 800, 2000, 20, 8],
     ];
 
-    const insertStmt = db.prepare(
-      'INSERT INTO productos (nombre, categoria, precio_compra, precio_venta, stock_actual, stock_minimo) VALUES (?, ?, ?, ?, ?, ?)'
-    );
-    for (const p of productos) insertStmt.run(...p);
+    for (const p of productos) {
+      await pool.query(
+        'INSERT INTO productos (nombre, categoria, precio_compra, precio_venta, stock_actual, stock_minimo) VALUES ($1, $2, $3, $4, $5, $6)',
+        p
+      );
+    }
 
-    db.prepare("INSERT OR REPLACE INTO config (clave, valor) VALUES (?, ?)").run('webhook_url', '');
-    db.prepare("INSERT OR REPLACE INTO config (clave, valor) VALUES (?, ?)").run('nombre_negocio', 'Meriendas Gimnasio Campestre');
-
-    db._save();
+    await pool.query("INSERT INTO config (clave, valor) VALUES ('webhook_url', '') ON CONFLICT (clave) DO NOTHING");
+    await pool.query("INSERT INTO config (clave, valor) VALUES ('nombre_negocio', 'Meriendas Gimnasio Campestre') ON CONFLICT (clave) DO NOTHING");
   }
 
-  // Auto-save every 5 seconds if there are changes
-  setInterval(() => { try { db._save(); } catch(e) {} }, 5000);
-
-  return db;
+  return pool;
 }
 
-module.exports = { getDb, initDb, DB_PATH };
+module.exports = { pool, initDb };
