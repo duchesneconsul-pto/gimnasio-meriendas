@@ -42,8 +42,8 @@ async function addPdfHeader(doc, titulo, subtitulo) {
   var nombre = await getNombreNegocio();
   var startY = doc.y;
 
-  // Franja dorada superior
-  doc.rect(0, 0, doc.page.width, 6).fill(COLOR_GOLD);
+  // Franja dorada superior (sutil)
+  doc.rect(0, 0, doc.page.width, 2.5).fill(COLOR_GOLD);
 
   if (logo) {
     try {
@@ -73,92 +73,93 @@ async function addPdfHeader(doc, titulo, subtitulo) {
 
   doc.fillColor('#000000');
   doc.moveDown(0.3);
-  // Linea decorativa rojo + dorado
+  // Linea decorativa rojo + dorado (fina)
   var lineY = doc.y;
-  doc.moveTo(50, lineY).lineTo(doc.page.width - 50, lineY).lineWidth(2).stroke(COLOR_PRIMARY);
-  doc.moveTo(50, lineY + 3).lineTo(doc.page.width - 50, lineY + 3).lineWidth(1).stroke(COLOR_GOLD);
+  doc.moveTo(50, lineY).lineTo(doc.page.width - 50, lineY).lineWidth(1).stroke(COLOR_PRIMARY);
+  doc.moveTo(50, lineY + 2).lineTo(doc.page.width - 50, lineY + 2).lineWidth(0.5).stroke(COLOR_GOLD);
   doc.lineWidth(1);
-  doc.y = lineY + 10;
+  doc.y = lineY + 8;
 }
 
 function addPdfTable(doc, headers, rows, colWidths) {
   var startX = 50;
   var tableWidth = colWidths.reduce(function(s, w) { return s + w; }, 0);
-  var rowHeight = 18;
+  var rowHeight = 16;
   var y = doc.y;
 
-  // Header con color primary (rojo)
+  // Header
   doc.rect(startX, y, tableWidth, rowHeight).fill(COLOR_PRIMARY);
   var x = startX;
-  doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold');
+  doc.fillColor('#ffffff').fontSize(7).font('Helvetica-Bold');
   for (var i = 0; i < headers.length; i++) {
     var align = headers[i].align || 'left';
-    var textX = align === 'right' ? x + colWidths[i] - 5 : x + 5;
-    doc.text(headers[i].label, textX, y + 4, { width: colWidths[i] - 10, align: align });
+    var textX = align === 'right' ? x + colWidths[i] - 4 : x + 4;
+    doc.text(headers[i].label, textX, y + 4, { width: colWidths[i] - 8, align: align });
     x += colWidths[i];
   }
 
   y += rowHeight;
-  doc.fillColor('#000000').fontSize(7.5).font('Helvetica');
+  doc.fillColor('#000000').fontSize(7).font('Helvetica');
 
   for (var r = 0; r < rows.length; r++) {
-    if (y + rowHeight > doc.page.height - 60) {
+    if (y + rowHeight > doc.page.height - 40) {
       doc.addPage();
       y = 50;
     }
     if (r % 2 === 0) {
-      doc.rect(startX, y, tableWidth, rowHeight).fill(COLOR_PRIMARY_LIGHT);
+      doc.rect(startX, y, tableWidth, rowHeight).fill('#F8F8F8');
     }
     doc.fillColor('#333333');
     x = startX;
     for (var c = 0; c < headers.length; c++) {
       var cellAlign = headers[c].align || 'left';
-      var cellX = cellAlign === 'right' ? x + colWidths[c] - 5 : x + 5;
-      doc.text(String(rows[r][c] != null ? rows[r][c] : ''), cellX, y + 5, { width: colWidths[c] - 10, align: cellAlign });
+      var cellX = cellAlign === 'right' ? x + colWidths[c] - 4 : x + 4;
+      doc.text(String(rows[r][c] != null ? rows[r][c] : ''), cellX, y + 4, { width: colWidths[c] - 8, align: cellAlign, lineBreak: false });
       x += colWidths[c];
     }
     y += rowHeight;
   }
 
-  doc.y = y + 5;
+  doc.y = y + 4;
 }
 
 function addPdfSectionTitle(doc, title) {
-  doc.moveDown(0.5);
+  doc.moveDown(0.4);
   var y = doc.y;
-  doc.rect(50, y, 4, 16).fill(COLOR_GOLD);
-  doc.fontSize(11).font('Helvetica-Bold').fillColor(COLOR_NAVY).text(title, 60, y + 1);
+  doc.rect(50, y + 1, 2, 12).fill(COLOR_GOLD);
+  doc.fontSize(10).font('Helvetica-Bold').fillColor(COLOR_NAVY).text(title, 57, y + 1);
   doc.fillColor('#000000');
-  doc.y = y + 22;
+  doc.y = y + 18;
 }
 
 function addPdfSummaryBox(doc, items, boxColor) {
-  boxColor = boxColor || COLOR_GOLD_BG;
+  boxColor = boxColor || '#FAFAF8';
   var startX = 50;
   var boxWidth = doc.page.width - 100;
-  var lineH = 15;
-  var boxH = items.length * lineH + 12;
+  var lineH = 13;
+  var boxH = items.length * lineH + 10;
 
   doc.rect(startX, doc.y, boxWidth, boxH).fill(boxColor);
-  doc.rect(startX, doc.y, 3, boxH).fill(COLOR_GOLD);
-  var y = doc.y + 6;
+  doc.rect(startX, doc.y, 1.5, boxH).fill(COLOR_GOLD);
+  var y = doc.y + 5;
   for (var i = 0; i < items.length; i++) {
-    doc.fontSize(9).font('Helvetica-Bold').fillColor(COLOR_NAVY).text(items[i].label + ': ', startX + 12, y, { continued: true });
-    doc.font('Helvetica').fillColor('#333333').text(items[i].value);
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#444444').text(items[i].label + ':  ', startX + 10, y, { continued: true });
+    doc.font('Helvetica').fillColor('#222222').text(items[i].value);
     y += lineH;
   }
   doc.fillColor('#000000');
-  doc.y = y + 6;
+  doc.y = y + 5;
 }
 
 function addPdfFooter(doc) {
   var pages = doc.bufferedPageRange();
   for (var i = pages.start; i < pages.start + pages.count; i++) {
     doc.switchToPage(i);
-    doc.rect(0, doc.page.height - 30, doc.page.width, 30).fill(COLOR_PRIMARY);
-    doc.fontSize(7).font('Helvetica').fillColor('#ffffff');
-    doc.text('Generado por Sistema de Meriendas - Gimnasio Campestre', 50, doc.page.height - 22, { width: doc.page.width - 200, align: 'left' });
-    doc.text('Pagina ' + (i + 1) + ' de ' + pages.count, doc.page.width - 150, doc.page.height - 22, { width: 100, align: 'right' });
+    var footY = doc.page.height - 25;
+    doc.moveTo(50, footY).lineTo(doc.page.width - 50, footY).lineWidth(0.5).stroke('#cccccc');
+    doc.fontSize(6.5).font('Helvetica').fillColor('#999999');
+    doc.text('Sistema de Meriendas - Gimnasio Campestre', 50, footY + 4, { width: doc.page.width - 200, align: 'left' });
+    doc.text('Pag. ' + (i + 1) + '/' + pages.count, doc.page.width - 130, footY + 4, { width: 80, align: 'right' });
   }
 }
 
@@ -376,7 +377,7 @@ router.get('/diario/pdf', verificarToken, soloAdmin, async (req, res) => {
             v.anulada ? 'ANULADA' : 'OK'
           ];
         }),
-        [40, 60, 120, 90, 80, 70]
+        [35, 55, 115, 85, 75, 60]
       );
     } else {
       doc.fontSize(9).font('Helvetica').fillColor('#666666').text('No hubo ventas este dia.', 50);
@@ -398,7 +399,7 @@ router.get('/diario/pdf', verificarToken, soloAdmin, async (req, res) => {
         topProds.map(function(p) {
           return [p.nombre, p.categoria, p.uds, fmt(p.total), fmt(p.costo), fmt(Number(p.total) - Number(p.costo))];
         }),
-        [140, 80, 40, 80, 80, 80]
+        [130, 75, 35, 75, 75, 75]
       );
     }
 
@@ -415,7 +416,7 @@ router.get('/diario/pdf', verificarToken, soloAdmin, async (req, res) => {
           { label: 'Minimo', align: 'right' }
         ],
         stockBajo.map(function(p) { return [p.nombre, p.stock_actual, p.stock_minimo]; }),
-        [250, 100, 100]
+        [200, 80, 80]
       );
     }
 
