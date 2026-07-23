@@ -120,18 +120,24 @@
       <section id="sec-config" class="hidden">
         <div class="page-header"><h1>Configuracion</h1></div>
         <div class="card">
-          <div class="card-header">Webhook GoHighLevel</div>
+          <div class="card-header">Integracion GoHighLevel</div>
           <div class="card-body">
             <p style="font-size:0.85rem;color:var(--text-sec);margin-bottom:1rem">
-              Pegue la URL del webhook de GoHighLevel. Al cerrar caja, el sistema enviara automaticamente un resumen a esta URL, que GHL puede usar para enviar un mensaje de WhatsApp.
+              Configure los webhooks de GoHighLevel o n8n. El sistema enviara datos automaticamente para que pueda crear workflows de WhatsApp.
             </p>
-            <div class="form-group">
-              <label class="form-label">URL del Webhook</label>
-              <input type="url" class="form-input" id="cfgWebhook" placeholder="https://services.leadconnectorhq.com/hooks/...">
-            </div>
             <div class="form-group">
               <label class="form-label">Nombre del negocio</label>
               <input type="text" class="form-input" id="cfgNombre" placeholder="Meriendas Gimnasio Campestre">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Webhook - Cierre de caja</label>
+              <input type="url" class="form-input" id="cfgWebhook" placeholder="https://services.leadconnectorhq.com/hooks/...">
+              <small style="font-size:0.72rem;color:var(--text-muted)">Se envia al cerrar caja con el resumen del dia</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Webhook - Credito / Fiado</label>
+              <input type="url" class="form-input" id="cfgWebhookCredito" placeholder="https://services.leadconnectorhq.com/hooks/...">
+              <small style="font-size:0.72rem;color:var(--text-muted)">Se envia cada vez que alguien compra a credito. Datos: nombre, tipo (profesor/alumno), monto, deuda total. Ideal para enviar WhatsApp automatico desde GHL.</small>
             </div>
             <button class="btn btn-primary" id="btnGuardarConfig">Guardar configuracion</button>
           </div>
@@ -236,12 +242,16 @@
 
   <div class="modal-overlay" id="modalUsuario">
     <div class="modal">
-      <div class="modal-header">Nuevo usuario<button class="modal-close" data-close="modalUsuario">&times;</button></div>
+      <div class="modal-header"><span id="modalUsrTitle">Nuevo usuario</span><button class="modal-close" data-close="modalUsuario">&times;</button></div>
       <div class="modal-body">
+        <input type="hidden" id="usrId">
         <div class="form-group"><label class="form-label">Nombre completo</label><input type="text" class="form-input" id="usrNombre"></div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Usuario</label><input type="text" class="form-input" id="usrUsuario"></div>
-          <div class="form-group"><label class="form-label">Contrasena</label><input type="password" class="form-input" id="usrPassword"></div>
+          <div class="form-group">
+            <label class="form-label">Contrasena <span id="usrPassHint" style="font-weight:400;color:var(--text-muted)"></span></label>
+            <input type="password" class="form-input" id="usrPassword" placeholder="">
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Rol</label>
@@ -250,7 +260,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline" data-close="modalUsuario">Cancelar</button>
-        <button class="btn btn-primary" id="btnCrearUsuario">Crear usuario</button>
+        <button class="btn btn-primary" id="btnGuardarUsuario">Guardar</button>
       </div>
     </div>
   </div>

@@ -1,6 +1,48 @@
 const express = require('express');
+const https = require('https');
+const http = require('http');
 const { getDb } = require('../database');
 const { verificarToken } = require('../middleware/auth');
+
+function enviarWebhookCredito(creditoData) {
+  const db = getDb();
+  const cfgUrl = db.prepare("SELECT valor FROM config WHERE clave = 'webhook_credito'").get();
+  const cfgNombre = db.prepare("SELECT valor FROM config WHERE clave = 'nombre_negocio'").get();
+  if (!cfgUrl || !cfgUrl.valor) return;
+
+  const totalDeuda = db.prepare(
+    "SELECT COALESCE(SUM(saldo_pendiente), 0) as total FROM creditos WHERE nombre_cliente = ? AND estado != 'PAGADO'"
+  ).get(creditoData.nombre_cliente);
+
+  const payload = JSON.stringify({
+    evento: 'nuevo_credito',
+    negocio: (cfgNombre && cfgNombre.valor) || 'Meriendas',
+    nombre_cliente: creditoData.nombre_cliente,
+    tipo_cliente: creditoData.tipo_cliente,
+    monto_credito: creditoData.monto,
+    deuda_total: totalDeuda.total,
+    fecha: creditoData.fecha,
+    notas: creditoData.notas || '',
+    productos: (creditoData.detalles_venta || []).map(function(d) {
+      return d.producto_nombre + ' x' + d.cantidad;
+    }).join(', ')
+  });
+
+  try {
+    const url = new URL(cfgUrl.valor);
+    const mod = url.protocol === 'https:' ? https : http;
+    const req = mod.request({
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname + url.search,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+    });
+    req.on('error', function() {});
+    req.write(payload);
+    req.end();
+  } catch (e) {}
+}
 
 const router = express.Router();
 
@@ -193,6 +235,8 @@ router.post('/', verificarToken, (req, res) => {
         WHERE vd.venta_id = ?
       `).all(ventaId);
     }
+
+    enviarWebhookCredito(resultado);
 
     res.json(resultado);
   } catch (e) {

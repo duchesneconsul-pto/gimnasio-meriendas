@@ -150,16 +150,24 @@
             '<td class="text-right tabular" style="' + (p.stock_actual <= p.stock_minimo ? 'color:var(--danger);font-weight:700' : '') + '">' + p.stock_actual + '</td>' +
             '<td class="text-right tabular">' + p.stock_minimo + '</td>' +
             '<td>' + (p.activo ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>') + '</td>' +
-            '<td><button class="btn btn-outline btn-sm" data-edit-prod="' + p.id + '">Editar</button></td>' +
+            '<td style="white-space:nowrap"><button class="btn btn-outline btn-sm" data-edit-prod="' + p.id + '">Editar</button> <button class="btn btn-danger btn-sm" data-del-prod="' + p.id + '">Borrar</button></td>' +
             '</tr>';
         }).join('') + '</tbody>';
     }).catch(function(e) { toast(e.message, 'error'); });
   }
 
-  // Event delegation for dynamic product edit buttons
+  // Event delegation for dynamic product edit/delete buttons
   document.getElementById('tablaProductos').addEventListener('click', function(e) {
     var btn = e.target.closest('[data-edit-prod]');
     if (btn) editarProducto(Number(btn.getAttribute('data-edit-prod')));
+    var delBtn = e.target.closest('[data-del-prod]');
+    if (delBtn) {
+      if (!confirm('Eliminar este producto? Se desactivara y ya no aparecera en el POS.')) return;
+      api('/api/productos/' + delBtn.getAttribute('data-del-prod'), { method: 'PUT', body: JSON.stringify({ activo: 0 }) }).then(function() {
+        toast('Producto eliminado');
+        cargarProductos();
+      }).catch(function(e) { toast(e.message, 'error'); });
+    }
   });
 
   function resetImgPreview() {
@@ -386,6 +394,7 @@
   function cargarConfig() {
     api('/api/reportes/config').then(function(cfg) {
       document.getElementById('cfgWebhook').value = cfg.webhook_url || '';
+      document.getElementById('cfgWebhookCredito').value = cfg.webhook_credito || '';
       document.getElementById('cfgNombre').value = cfg.nombre_negocio || '';
     }).catch(function(e) { toast(e.message, 'error'); });
 
@@ -393,11 +402,16 @@
       document.getElementById('tablaUsuarios').innerHTML =
         '<thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estado</th><th></th></tr></thead>' +
         '<tbody>' + usuarios.map(function(u) {
+          var btns = '';
+          if (u.activo) {
+            btns = '<button class="btn btn-outline btn-sm" data-edit-user=\'' + JSON.stringify({id:u.id,nombre:u.nombre,usuario:u.usuario,rol:u.rol}) + '\'>Editar</button> ' +
+                   '<button class="btn btn-danger btn-sm" data-del-user="' + u.id + '">Eliminar</button>';
+          }
           return '<tr>' +
             '<td style="font-weight:500">' + u.nombre + '</td><td>' + u.usuario + '</td>' +
             '<td><span class="badge ' + (u.rol==='admin'?'badge-gold':'badge-primary') + '">' + u.rol + '</span></td>' +
             '<td>' + (u.activo ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>') + '</td>' +
-            '<td>' + (u.activo ? '<button class="btn btn-danger btn-sm" data-del-user="' + u.id + '">Eliminar</button>' : '') + '</td></tr>';
+            '<td style="white-space:nowrap">' + btns + '</td></tr>';
         }).join('') + '</tbody>';
     }).catch(function(e) { toast(e.message, 'error'); });
   }
@@ -405,36 +419,76 @@
   document.getElementById('btnGuardarConfig').addEventListener('click', function() {
     api('/api/reportes/config', { method: 'PUT', body: JSON.stringify({
       webhook_url: document.getElementById('cfgWebhook').value,
+      webhook_credito: document.getElementById('cfgWebhookCredito').value,
       nombre_negocio: document.getElementById('cfgNombre').value
     })}).then(function() {
       toast('Configuracion guardada');
     }).catch(function(e) { toast(e.message, 'error'); });
   });
 
-  function abrirModalUsuario() {
-    document.getElementById('usrNombre').value = '';
-    document.getElementById('usrUsuario').value = '';
-    document.getElementById('usrPassword').value = '';
-    document.getElementById('usrRol').value = 'cajero';
+  function abrirModalUsuario(data) {
+    if (data) {
+      document.getElementById('modalUsrTitle').textContent = 'Editar usuario';
+      document.getElementById('usrId').value = data.id;
+      document.getElementById('usrNombre').value = data.nombre;
+      document.getElementById('usrUsuario').value = data.usuario;
+      document.getElementById('usrUsuario').disabled = true;
+      document.getElementById('usrPassword').value = '';
+      document.getElementById('usrPassword').placeholder = 'Dejar vacio para no cambiar';
+      document.getElementById('usrPassHint').textContent = '(opcional)';
+      document.getElementById('usrRol').value = data.rol;
+    } else {
+      document.getElementById('modalUsrTitle').textContent = 'Nuevo usuario';
+      document.getElementById('usrId').value = '';
+      document.getElementById('usrNombre').value = '';
+      document.getElementById('usrUsuario').value = '';
+      document.getElementById('usrUsuario').disabled = false;
+      document.getElementById('usrPassword').value = '';
+      document.getElementById('usrPassword').placeholder = '';
+      document.getElementById('usrPassHint').textContent = '';
+      document.getElementById('usrRol').value = 'cajero';
+    }
     abrirModal('modalUsuario');
   }
-  document.getElementById('btnNuevoUsuario').addEventListener('click', abrirModalUsuario);
+  document.getElementById('btnNuevoUsuario').addEventListener('click', function() { abrirModalUsuario(); });
 
-  document.getElementById('btnCrearUsuario').addEventListener('click', function() {
-    api('/api/auth/usuarios', { method: 'POST', body: JSON.stringify({
-      nombre: document.getElementById('usrNombre').value,
-      usuario: document.getElementById('usrUsuario').value,
-      password: document.getElementById('usrPassword').value,
-      rol: document.getElementById('usrRol').value
-    })}).then(function() {
-      cerrarModal('modalUsuario');
-      toast('Usuario creado');
-      cargarConfig();
-    }).catch(function(e) { toast(e.message, 'error'); });
+  document.getElementById('btnGuardarUsuario').addEventListener('click', function() {
+    var id = document.getElementById('usrId').value;
+    var nombre = document.getElementById('usrNombre').value;
+    var usuario = document.getElementById('usrUsuario').value;
+    var password = document.getElementById('usrPassword').value;
+    var rol = document.getElementById('usrRol').value;
+
+    if (!nombre) { toast('Nombre es requerido', 'error'); return; }
+
+    if (id) {
+      var body = { nombre: nombre, rol: rol };
+      if (password.trim()) body.password = password;
+      api('/api/auth/usuarios/' + id, { method: 'PUT', body: JSON.stringify(body) }).then(function() {
+        cerrarModal('modalUsuario');
+        toast('Usuario actualizado');
+        cargarConfig();
+      }).catch(function(e) { toast(e.message, 'error'); });
+    } else {
+      if (!usuario || !password) { toast('Usuario y contrasena requeridos', 'error'); return; }
+      api('/api/auth/usuarios', { method: 'POST', body: JSON.stringify({
+        nombre: nombre, usuario: usuario, password: password, rol: rol
+      })}).then(function() {
+        cerrarModal('modalUsuario');
+        toast('Usuario creado');
+        cargarConfig();
+      }).catch(function(e) { toast(e.message, 'error'); });
+    }
   });
 
-  // ── User delete delegation ──
+  // ── User edit/delete delegation ──
   document.getElementById('tablaUsuarios').addEventListener('click', function(e) {
+    var editBtn = e.target.closest('[data-edit-user]');
+    if (editBtn) {
+      var data = JSON.parse(editBtn.getAttribute('data-edit-user'));
+      abrirModalUsuario(data);
+      return;
+    }
     var delBtn = e.target.closest('[data-del-user]');
     if (delBtn) {
       if (!confirm('Desactivar este usuario?')) return;
