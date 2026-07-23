@@ -180,6 +180,31 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="modalEfectivo">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-header">Cobro en efectivo<button class="modal-close" data-close="modalEfectivo">&times;</button></div>
+      <div class="modal-body" style="text-align:center">
+        <div style="margin-bottom:1rem">
+          <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);font-weight:600;margin-bottom:0.25rem">Total a cobrar</div>
+          <div id="efTotal" style="font-size:2rem;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums">$0</div>
+        </div>
+        <div class="form-group" style="text-align:left">
+          <label class="form-label">Cliente paga con</label>
+          <input type="number" class="form-input" id="efPagaCon" min="0" step="100" style="font-size:1.2rem;font-weight:700;text-align:center" placeholder="$0" autofocus>
+        </div>
+        <div id="efCambioBox" style="display:none;padding:0.85rem;border-radius:var(--radius);margin-top:0.5rem">
+          <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:0.2rem" id="efCambioLabel">Cambio</div>
+          <div id="efCambio" style="font-size:1.8rem;font-weight:800;font-variant-numeric:tabular-nums">$0</div>
+        </div>
+        <div id="efBotonesRapidos" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.75rem;justify-content:center"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-close="modalEfectivo">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmarEfectivo" disabled>Cobrar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-container" id="toasts"></div>
 
   <script src="/js/pos.js"></script>

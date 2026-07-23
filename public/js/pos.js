@@ -47,7 +47,7 @@
   document.getElementById('btnSalir').addEventListener('click', function() { localStorage.clear(); window.location.href = '/'; });
 
   // ── Payment buttons ──
-  document.getElementById('btnEfectivo').addEventListener('click', function() { cobrar('EFECTIVO'); });
+  document.getElementById('btnEfectivo').addEventListener('click', function() { abrirModalEfectivo(); });
   document.getElementById('btnTransfer').addEventListener('click', function() { cobrar('TRANSFERENCIA'); });
   document.getElementById('btnCredito').addEventListener('click', function() { abrirModalCredito(); });
   document.getElementById('btnLimpiar').addEventListener('click', function() { carrito = []; renderCarrito(); });
@@ -169,6 +169,76 @@
       carrito = carrito.filter(function(c) { return c.producto_id !== rid; });
       renderCarrito();
     }
+  });
+
+  // ── Cash payment modal ──
+  function abrirModalEfectivo() {
+    var total = carrito.reduce(function(s, c) { return s + c.precio * c.cantidad; }, 0);
+    document.getElementById('efTotal').textContent = fmt(total);
+    document.getElementById('efPagaCon').value = '';
+    document.getElementById('efCambioBox').style.display = 'none';
+    document.getElementById('btnConfirmarEfectivo').disabled = true;
+
+    var rapidos = [total];
+    var roundUp = Math.ceil(total / 1000) * 1000;
+    if (roundUp > total) rapidos.push(roundUp);
+    [5000, 10000, 20000, 50000, 100000].forEach(function(v) {
+      if (v >= total && rapidos.indexOf(v) === -1) rapidos.push(v);
+    });
+    rapidos = rapidos.slice(0, 5);
+
+    document.getElementById('efBotonesRapidos').innerHTML = rapidos.map(function(v) {
+      return '<button class="btn btn-outline btn-sm" data-ef-rapido="' + v + '" style="min-width:70px">' + fmt(v) + '</button>';
+    }).join('');
+
+    abrirModal('modalEfectivo');
+    setTimeout(function() { document.getElementById('efPagaCon').focus(); }, 100);
+  }
+
+  function calcularCambio() {
+    var total = carrito.reduce(function(s, c) { return s + c.precio * c.cantidad; }, 0);
+    var pagaCon = Number(document.getElementById('efPagaCon').value) || 0;
+    var cambioBox = document.getElementById('efCambioBox');
+    var cambioEl = document.getElementById('efCambio');
+    var labelEl = document.getElementById('efCambioLabel');
+    var btnConfirmar = document.getElementById('btnConfirmarEfectivo');
+
+    if (pagaCon > 0 && pagaCon >= total) {
+      var cambio = pagaCon - total;
+      cambioBox.style.display = 'block';
+      cambioBox.style.background = 'var(--success-bg)';
+      cambioBox.style.color = 'var(--success)';
+      labelEl.textContent = 'Cambio a devolver';
+      labelEl.style.color = 'var(--success)';
+      cambioEl.textContent = fmt(cambio);
+      btnConfirmar.disabled = false;
+    } else if (pagaCon > 0 && pagaCon < total) {
+      cambioBox.style.display = 'block';
+      cambioBox.style.background = 'var(--danger-bg)';
+      cambioBox.style.color = 'var(--danger)';
+      labelEl.textContent = 'Falta';
+      labelEl.style.color = 'var(--danger)';
+      cambioEl.textContent = fmt(total - pagaCon);
+      btnConfirmar.disabled = true;
+    } else {
+      cambioBox.style.display = 'none';
+      btnConfirmar.disabled = true;
+    }
+  }
+
+  document.getElementById('efPagaCon').addEventListener('input', calcularCambio);
+
+  document.getElementById('efBotonesRapidos').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-ef-rapido]');
+    if (btn) {
+      document.getElementById('efPagaCon').value = btn.getAttribute('data-ef-rapido');
+      calcularCambio();
+    }
+  });
+
+  document.getElementById('btnConfirmarEfectivo').addEventListener('click', function() {
+    cerrarModal('modalEfectivo');
+    cobrar('EFECTIVO');
   });
 
   function cobrar(metodo) {
