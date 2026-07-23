@@ -48,7 +48,12 @@
     <main class="main-content">
 
       <section id="sec-dashboard">
-        <div class="page-header"><h1>Dashboard</h1><span id="dashFecha" style="color:var(--text-muted);font-size:0.85rem"></span></div>
+        <div class="page-header">
+          <h1>Dashboard</h1>
+          <div class="page-header-actions">
+            <span id="dashFecha" style="color:var(--text-muted);font-size:0.85rem"></span>
+          </div>
+        </div>
         <div class="stats-grid" id="dashStats"></div>
         <div class="grid-2">
           <div class="card">
@@ -91,13 +96,23 @@
       <section id="sec-inventario" class="hidden">
         <div class="page-header">
           <h1>Movimientos de inventario</h1>
-          <button class="btn btn-primary" id="btnNuevaEntrada">+ Registrar entrada</button>
+          <div class="page-header-actions">
+            <button class="btn btn-outline btn-sm" id="btnInventarioPdf">PDF</button>
+            <button class="btn btn-outline btn-sm" id="btnInventarioExcel">Excel</button>
+            <button class="btn btn-primary" id="btnNuevaEntrada">+ Registrar entrada</button>
+          </div>
         </div>
         <div class="card"><div class="card-body"><div class="table-wrapper"><table id="tablaInventario"></table></div></div></div>
       </section>
 
       <section id="sec-ventas" class="hidden">
-        <div class="page-header"><h1>Historial de ventas</h1></div>
+        <div class="page-header">
+          <h1>Historial de ventas</h1>
+          <div class="page-header-actions">
+            <button class="btn btn-outline btn-sm" id="btnVentasPdf">PDF</button>
+            <button class="btn btn-outline btn-sm" id="btnVentasExcel">Excel</button>
+          </div>
+        </div>
         <div class="flex gap-1 mb-2">
           <input type="date" class="form-input" id="ventasFecha" style="max-width:200px">
         </div>
@@ -105,7 +120,13 @@
       </section>
 
       <section id="sec-arqueos" class="hidden">
-        <div class="page-header"><h1>Historial de arqueos</h1></div>
+        <div class="page-header">
+          <h1>Historial de arqueos</h1>
+          <div class="page-header-actions">
+            <button class="btn btn-outline btn-sm" id="btnArqueosPdf">PDF</button>
+            <button class="btn btn-outline btn-sm" id="btnArqueosExcel">Excel</button>
+          </div>
+        </div>
         <div class="card"><div class="card-body"><div class="table-wrapper"><table id="tablaArqueos"></table></div></div></div>
       </section>
 
@@ -123,7 +144,13 @@
       </section>
 
       <section id="sec-rentabilidad" class="hidden">
-        <div class="page-header"><h1>Rentabilidad por producto</h1></div>
+        <div class="page-header">
+          <h1>Rentabilidad por producto</h1>
+          <div class="page-header-actions">
+            <button class="btn btn-outline btn-sm" id="btnRentabilidadPdf">PDF</button>
+            <button class="btn btn-outline btn-sm" id="btnRentabilidadExcel">Excel</button>
+          </div>
+        </div>
         <div class="card"><div class="card-body"><div class="table-wrapper"><table id="tablaRentabilidad"></table></div></div></div>
       </section>
 

@@ -742,6 +742,51 @@
     }).catch(function(e) { toast(e.message, 'error'); });
   });
 
+  // ── Descargar Informes ──
+  function descargarInforme(url, nombre) {
+    fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Error al generar informe');
+        return res.blob();
+      })
+      .then(function(blob) {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = nombre;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast('Informe descargado');
+      })
+      .catch(function(e) { toast(e.message, 'error'); });
+  }
+
+  document.getElementById('btnVentasPdf').addEventListener('click', function() {
+    var fecha = document.getElementById('ventasFecha').value || new Date().toISOString().split('T')[0];
+    descargarInforme('/api/informes/ventas/pdf?fecha=' + fecha, 'ventas_' + fecha + '.pdf');
+  });
+  document.getElementById('btnVentasExcel').addEventListener('click', function() {
+    var fecha = document.getElementById('ventasFecha').value || new Date().toISOString().split('T')[0];
+    descargarInforme('/api/informes/ventas/excel?fecha=' + fecha, 'ventas_' + fecha + '.xlsx');
+  });
+  document.getElementById('btnInventarioPdf').addEventListener('click', function() {
+    descargarInforme('/api/informes/inventario/pdf', 'inventario_' + new Date().toISOString().split('T')[0] + '.pdf');
+  });
+  document.getElementById('btnInventarioExcel').addEventListener('click', function() {
+    descargarInforme('/api/informes/inventario/excel', 'inventario_' + new Date().toISOString().split('T')[0] + '.xlsx');
+  });
+  document.getElementById('btnArqueosPdf').addEventListener('click', function() {
+    descargarInforme('/api/informes/arqueos/pdf', 'arqueos_' + new Date().toISOString().split('T')[0] + '.pdf');
+  });
+  document.getElementById('btnArqueosExcel').addEventListener('click', function() {
+    descargarInforme('/api/informes/arqueos/excel', 'arqueos_' + new Date().toISOString().split('T')[0] + '.xlsx');
+  });
+  document.getElementById('btnRentabilidadPdf').addEventListener('click', function() {
+    descargarInforme('/api/informes/rentabilidad/pdf', 'rentabilidad_' + new Date().toISOString().split('T')[0] + '.pdf');
+  });
+  document.getElementById('btnRentabilidadExcel').addEventListener('click', function() {
+    descargarInforme('/api/informes/rentabilidad/excel', 'rentabilidad_' + new Date().toISOString().split('T')[0] + '.xlsx');
+  });
+
   // ── Init ──
   document.getElementById('adminName').textContent = user.nombre || 'Admin';
   document.getElementById('ventasFecha').value = new Date().toISOString().split('T')[0];
