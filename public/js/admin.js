@@ -62,7 +62,7 @@
   }
 
   function loadSection(name) {
-    var loaders = { dashboard: cargarDashboard, productos: cargarProductos, inventario: cargarMovimientos, ventas: cargarVentas, arqueos: cargarArqueos, creditos: cargarCreditos, rentabilidad: cargarRentabilidad, config: cargarConfig };
+    var loaders = { dashboard: cargarDashboard, productos: cargarProductos, inventario: cargarMovimientos, ventas: cargarVentas, arqueos: cargarArqueos, creditos: cargarCreditos, rentabilidad: cargarRentabilidad, papelera: cargarPapelera, config: cargarConfig };
     if (loaders[name]) loaders[name]();
   }
 
@@ -162,9 +162,9 @@
     if (btn) editarProducto(Number(btn.getAttribute('data-edit-prod')));
     var delBtn = e.target.closest('[data-del-prod]');
     if (delBtn) {
-      if (!confirm('Eliminar este producto? Se desactivara y ya no aparecera en el POS.')) return;
+      if (!confirm('¿Esta seguro que desea eliminar este producto?\n\nSe movera a la Papelera donde podra restaurarlo o eliminarlo permanentemente.')) return;
       api('/api/productos/' + delBtn.getAttribute('data-del-prod'), { method: 'PUT', body: JSON.stringify({ activo: 0 }) }).then(function() {
-        toast('Producto eliminado');
+        toast('Producto movido a la papelera');
         cargarProductos();
       }).catch(function(e) { toast(e.message, 'error'); });
     }
@@ -640,6 +640,105 @@
       cerrarModal('modalPagoCredito');
       toast('Abono registrado');
       cargarCreditos();
+    }).catch(function(e) { toast(e.message, 'error'); });
+  });
+
+  // ── Papelera ──
+  function cargarPapelera() {
+    api('/api/productos/papelera').then(function(prods) {
+      if (prods.length === 0) {
+        document.getElementById('tablaPapelera').innerHTML = '<tbody><tr><td style="text-align:center;color:var(--text-muted);padding:2rem">La papelera esta vacia</td></tr></tbody>';
+        return;
+      }
+      document.getElementById('tablaPapelera').innerHTML =
+        '<thead><tr><th></th><th>Nombre</th><th>Categoria</th><th class="text-right">P. Venta</th><th class="text-right">Stock</th><th></th></tr></thead>' +
+        '<tbody>' + prods.map(function(p) {
+          var imgCell = p.imagen ? '<img src="' + p.imagen + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover">' : '<div style="width:36px;height:36px;border-radius:6px;background:var(--surface);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>';
+          return '<tr>' +
+            '<td>' + imgCell + '</td>' +
+            '<td style="font-weight:600">' + p.nombre + '</td>' +
+            '<td><span class="badge badge-primary">' + p.categoria + '</span></td>' +
+            '<td class="text-right tabular">' + fmt(p.precio_venta) + '</td>' +
+            '<td class="text-right tabular">' + p.stock_actual + '</td>' +
+            '<td style="white-space:nowrap">' +
+              '<button class="btn btn-primary btn-sm" data-restaurar-prod="' + p.id + '">Restaurar</button> ' +
+              '<button class="btn btn-danger btn-sm" data-eliminar-perm="' + p.id + '" data-nombre="' + p.nombre + '">Eliminar</button>' +
+            '</td></tr>';
+        }).join('') + '</tbody>';
+    }).catch(function(e) { toast(e.message, 'error'); });
+  }
+
+  document.getElementById('tablaPapelera').addEventListener('click', function(e) {
+    var restBtn = e.target.closest('[data-restaurar-prod]');
+    if (restBtn) {
+      api('/api/productos/' + restBtn.getAttribute('data-restaurar-prod') + '/restaurar', { method: 'POST' }).then(function() {
+        toast('Producto restaurado');
+        cargarPapelera();
+      }).catch(function(e) { toast(e.message, 'error'); });
+      return;
+    }
+    var delBtn = e.target.closest('[data-eliminar-perm]');
+    if (delBtn) {
+      var nombre = delBtn.getAttribute('data-nombre');
+      if (!confirm('¿Eliminar permanentemente "' + nombre + '"?\n\nEsta accion NO se puede deshacer.')) return;
+      api('/api/productos/' + delBtn.getAttribute('data-eliminar-perm') + '/permanente', { method: 'DELETE' }).then(function() {
+        toast('Producto eliminado permanentemente');
+        cargarPapelera();
+      }).catch(function(e) { toast(e.message, 'error'); });
+    }
+  });
+
+  // ── Categorias ──
+  function cargarCategorias() {
+    api('/api/productos/categorias').then(function(cats) {
+      document.getElementById('listaCategorias').innerHTML = cats.map(function(c) {
+        return '<div style="display:inline-flex;align-items:center;gap:0.25rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:0.25rem 0.5rem;font-size:0.82rem">' +
+          '<span style="font-weight:600">' + c + '</span>' +
+          (c !== 'general' ? ' <button class="btn btn-outline btn-sm" data-rename-cat="' + c + '" style="padding:0 4px;font-size:0.65rem;min-width:auto">Renombrar</button>' +
+          '<button class="btn btn-danger btn-sm" data-delete-cat="' + c + '" style="padding:0 4px;font-size:0.65rem;min-width:auto">X</button>' : '') +
+        '</div>';
+      }).join('');
+    }).catch(function(e) { toast(e.message, 'error'); });
+  }
+
+  document.getElementById('btnToggleCats').addEventListener('click', function() {
+    var panel = document.getElementById('categoriasPanel');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) cargarCategorias();
+  });
+
+  document.getElementById('listaCategorias').addEventListener('click', function(e) {
+    var renameBtn = e.target.closest('[data-rename-cat]');
+    if (renameBtn) {
+      var cat = renameBtn.getAttribute('data-rename-cat');
+      document.getElementById('catVieja').value = cat;
+      document.getElementById('catNueva').value = cat;
+      document.getElementById('modalCatTitle').textContent = 'Renombrar: ' + cat;
+      abrirModal('modalCategoria');
+      return;
+    }
+    var delBtn = e.target.closest('[data-delete-cat]');
+    if (delBtn) {
+      var catName = delBtn.getAttribute('data-delete-cat');
+      if (!confirm('¿Eliminar la categoria "' + catName + '"?\n\nLos productos se moveran a "general".')) return;
+      api('/api/productos/categorias/' + encodeURIComponent(catName), { method: 'DELETE' }).then(function(r) {
+        toast(r.movidos + ' productos movidos a "general"');
+        cargarCategorias();
+        cargarProductos();
+      }).catch(function(e) { toast(e.message, 'error'); });
+    }
+  });
+
+  document.getElementById('btnGuardarCategoria').addEventListener('click', function() {
+    var vieja = document.getElementById('catVieja').value;
+    var nueva = document.getElementById('catNueva').value.trim();
+    if (!nueva) { toast('Escriba un nombre', 'error'); return; }
+    if (vieja === nueva) { cerrarModal('modalCategoria'); return; }
+    api('/api/productos/categorias/renombrar', { method: 'PUT', body: JSON.stringify({ vieja: vieja, nueva: nueva }) }).then(function(r) {
+      cerrarModal('modalCategoria');
+      toast('Categoria renombrada (' + r.actualizados + ' productos)');
+      cargarCategorias();
+      cargarProductos();
     }).catch(function(e) { toast(e.message, 'error'); });
   });
 

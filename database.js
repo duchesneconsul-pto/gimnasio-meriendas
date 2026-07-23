@@ -199,8 +199,9 @@ async function initDb() {
     );
   `);
 
-  try { db.exec('ALTER TABLE productos ADD COLUMN codigo_barras TEXT UNIQUE'); } catch(e) {}
+  try { db.exec('ALTER TABLE productos ADD COLUMN codigo_barras TEXT'); } catch(e) {}
   try { db.exec('ALTER TABLE productos ADD COLUMN imagen TEXT'); } catch(e) {}
+  try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_productos_barcode ON productos(codigo_barras) WHERE codigo_barras IS NOT NULL'); } catch(e) {}
 
   const adminExists = db.prepare('SELECT id FROM usuarios WHERE usuario = ?').get('admin');
   if (!adminExists) {

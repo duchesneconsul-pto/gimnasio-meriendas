@@ -91,4 +91,55 @@ router.put('/:id', verificarToken, soloAdmin, (req, res) => {
   }
 });
 
+// ── Categories management ──
+router.put('/categorias/renombrar', verificarToken, soloAdmin, (req, res) => {
+  const { vieja, nueva } = req.body;
+  if (!vieja || !nueva) return res.status(400).json({ error: 'Categoria vieja y nueva requeridas' });
+  const db = getDb();
+  const count = db.prepare('SELECT COUNT(*) as c FROM productos WHERE categoria = ?').get(vieja).c;
+  if (count === 0) return res.status(404).json({ error: 'No hay productos con esa categoria' });
+  db.prepare('UPDATE productos SET categoria = ? WHERE categoria = ?').run(nueva.trim(), vieja);
+  db._save();
+  res.json({ ok: true, actualizados: count });
+});
+
+router.delete('/categorias/:nombre', verificarToken, soloAdmin, (req, res) => {
+  const nombre = decodeURIComponent(req.params.nombre);
+  const db = getDb();
+  const count = db.prepare('SELECT COUNT(*) as c FROM productos WHERE categoria = ?').get(nombre).c;
+  if (count === 0) return res.status(404).json({ error: 'No hay productos con esa categoria' });
+  db.prepare("UPDATE productos SET categoria = 'general' WHERE categoria = ?").run(nombre);
+  db._save();
+  res.json({ ok: true, movidos: count });
+});
+
+// ── Trash ──
+router.get('/papelera', verificarToken, soloAdmin, (req, res) => {
+  const db = getDb();
+  res.json(db.prepare('SELECT * FROM productos WHERE activo = 0 ORDER BY nombre').all());
+});
+
+router.post('/:id/restaurar', verificarToken, soloAdmin, (req, res) => {
+  const db = getDb();
+  const prod = db.prepare('SELECT * FROM productos WHERE id = ? AND activo = 0').get(Number(req.params.id));
+  if (!prod) return res.status(404).json({ error: 'Producto no encontrado en papelera' });
+  db.prepare('UPDATE productos SET activo = 1 WHERE id = ?').run(Number(req.params.id));
+  db._save();
+  res.json({ ok: true });
+});
+
+router.delete('/:id/permanente', verificarToken, soloAdmin, (req, res) => {
+  const db = getDb();
+  const prod = db.prepare('SELECT * FROM productos WHERE id = ? AND activo = 0').get(Number(req.params.id));
+  if (!prod) return res.status(404).json({ error: 'Solo se pueden eliminar permanentemente productos que esten en la papelera' });
+  const enVentas = db.prepare('SELECT COUNT(*) as c FROM venta_detalles WHERE producto_id = ?').get(Number(req.params.id)).c;
+  if (enVentas > 0) {
+    return res.status(400).json({ error: 'No se puede eliminar permanentemente, tiene ' + enVentas + ' ventas asociadas. Se mantendra en papelera.' });
+  }
+  db.prepare('DELETE FROM movimientos_inventario WHERE producto_id = ?').run(Number(req.params.id));
+  db.prepare('DELETE FROM productos WHERE id = ?').run(Number(req.params.id));
+  db._save();
+  res.json({ ok: true });
+});
+
 module.exports = router;
