@@ -64,11 +64,11 @@ async function addPdfHeader(doc, titulo, subtitulo) {
     }
   } else {
     doc.y = 20;
-    doc.fontSize(16).font('Helvetica-Bold').fillColor(COLOR_PRIMARY).text(nombre, { align: 'center' });
+    doc.fontSize(16).font('Helvetica-Bold').fillColor(COLOR_PRIMARY).text(nombre, { align: 'center', lineBreak: false });
     doc.moveDown(0.2);
-    doc.fontSize(13).font('Helvetica-Bold').fillColor(COLOR_NAVY).text(titulo, { align: 'center' });
+    doc.fontSize(13).font('Helvetica-Bold').fillColor(COLOR_NAVY).text(titulo, { align: 'center', lineBreak: false });
     doc.moveDown(0.1);
-    doc.fontSize(8).font('Helvetica').fillColor('#666666').text(subtitulo, { align: 'center' });
+    doc.fontSize(8).font('Helvetica').fillColor('#666666').text(subtitulo, { align: 'center', lineBreak: false });
   }
 
   doc.fillColor('#000000');
@@ -93,13 +93,12 @@ function addPdfTable(doc, headers, rows, colWidths) {
   doc.fillColor('#ffffff').fontSize(7).font('Helvetica-Bold');
   for (var i = 0; i < headers.length; i++) {
     var align = headers[i].align || 'left';
-    var textX = align === 'right' ? x + colWidths[i] - 4 : x + 4;
-    doc.text(headers[i].label, textX, y + 4, { width: colWidths[i] - 8, align: align });
+    doc.text(headers[i].label, x + 3, y + 4, { width: colWidths[i] - 6, align: align, lineBreak: false });
     x += colWidths[i];
   }
 
   y += rowHeight;
-  doc.fillColor('#000000').fontSize(7).font('Helvetica');
+  doc.fontSize(7).font('Helvetica');
 
   for (var r = 0; r < rows.length; r++) {
     if (y + rowHeight > doc.page.height - 40) {
@@ -113,8 +112,7 @@ function addPdfTable(doc, headers, rows, colWidths) {
     x = startX;
     for (var c = 0; c < headers.length; c++) {
       var cellAlign = headers[c].align || 'left';
-      var cellX = cellAlign === 'right' ? x + colWidths[c] - 4 : x + 4;
-      doc.text(String(rows[r][c] != null ? rows[r][c] : ''), cellX, y + 4, { width: colWidths[c] - 8, align: cellAlign, lineBreak: false });
+      doc.text(String(rows[r][c] != null ? rows[r][c] : ''), x + 3, y + 4, { width: colWidths[c] - 6, align: cellAlign, lineBreak: false });
       x += colWidths[c];
     }
     y += rowHeight;
@@ -124,10 +122,13 @@ function addPdfTable(doc, headers, rows, colWidths) {
 }
 
 function addPdfSectionTitle(doc, title) {
+  if (doc.y + 30 > doc.page.height - 40) {
+    doc.addPage();
+  }
   doc.moveDown(0.4);
   var y = doc.y;
   doc.rect(50, y + 1, 2, 12).fill(COLOR_GOLD);
-  doc.fontSize(10).font('Helvetica-Bold').fillColor(COLOR_NAVY).text(title, 57, y + 1);
+  doc.fontSize(10).font('Helvetica-Bold').fillColor(COLOR_NAVY).text(title, 57, y + 1, { lineBreak: false });
   doc.fillColor('#000000');
   doc.y = y + 18;
 }
@@ -139,12 +140,16 @@ function addPdfSummaryBox(doc, items, boxColor) {
   var lineH = 13;
   var boxH = items.length * lineH + 10;
 
+  if (doc.y + boxH > doc.page.height - 40) {
+    doc.addPage();
+  }
+
   doc.rect(startX, doc.y, boxWidth, boxH).fill(boxColor);
   doc.rect(startX, doc.y, 1.5, boxH).fill(COLOR_GOLD);
   var y = doc.y + 5;
   for (var i = 0; i < items.length; i++) {
-    doc.fontSize(8).font('Helvetica-Bold').fillColor('#444444').text(items[i].label + ':  ', startX + 10, y, { continued: true });
-    doc.font('Helvetica').fillColor('#222222').text(items[i].value);
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#444444').text(items[i].label + ':  ', startX + 10, y, { continued: true, lineBreak: false });
+    doc.font('Helvetica').fillColor('#222222').text(items[i].value, { lineBreak: false });
     y += lineH;
   }
   doc.fillColor('#000000');
