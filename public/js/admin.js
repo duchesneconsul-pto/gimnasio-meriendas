@@ -398,6 +398,7 @@
       document.getElementById('cfgNombre').value = cfg.nombre_negocio || '';
     }).catch(function(e) { toast(e.message, 'error'); });
     cargarBackupInfo();
+    cargarLogo();
 
     api('/api/auth/usuarios').then(function(usuarios) {
       document.getElementById('tablaUsuarios').innerHTML =
@@ -744,6 +745,7 @@
 
   // ── Descargar Informes ──
   function descargarInforme(url, nombre) {
+    toast('Generando informe...', 'info');
     fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
       .then(function(res) {
         if (!res.ok) throw new Error('Error al generar informe');
@@ -760,6 +762,17 @@
       .catch(function(e) { toast(e.message, 'error'); });
   }
 
+  // Informe diario completo
+  document.getElementById('btnInformeDiarioPdf').addEventListener('click', function() {
+    var fecha = new Date().toISOString().split('T')[0];
+    descargarInforme('/api/informes/diario/pdf?fecha=' + fecha, 'informe_diario_' + fecha + '.pdf');
+  });
+  document.getElementById('btnInformeDiarioExcel').addEventListener('click', function() {
+    var fecha = new Date().toISOString().split('T')[0];
+    descargarInforme('/api/informes/diario/excel?fecha=' + fecha, 'informe_diario_' + fecha + '.xlsx');
+  });
+
+  // Informes por seccion
   document.getElementById('btnVentasPdf').addEventListener('click', function() {
     var fecha = document.getElementById('ventasFecha').value || new Date().toISOString().split('T')[0];
     descargarInforme('/api/informes/ventas/pdf?fecha=' + fecha, 'ventas_' + fecha + '.pdf');
@@ -785,6 +798,41 @@
   });
   document.getElementById('btnRentabilidadExcel').addEventListener('click', function() {
     descargarInforme('/api/informes/rentabilidad/excel', 'rentabilidad_' + new Date().toISOString().split('T')[0] + '.xlsx');
+  });
+
+  // ── Logo para informes ──
+  function cargarLogo() {
+    api('/api/informes/config/logo').then(function(data) {
+      if (data.logo) {
+        document.getElementById('logoPreview').innerHTML = '<img src="' + data.logo + '" style="width:100%;height:100%;object-fit:contain">';
+        document.getElementById('btnQuitarLogo').style.display = '';
+      } else {
+        document.getElementById('logoPreview').innerHTML = '<span style="font-size:0.7rem;color:var(--text-muted);text-align:center">Sin logo</span>';
+        document.getElementById('btnQuitarLogo').style.display = 'none';
+      }
+    }).catch(function() {});
+  }
+
+  document.getElementById('inputLogoFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast('Imagen muy grande (max 2MB)', 'error'); e.target.value = ''; return; }
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      api('/api/informes/config/logo', { method: 'POST', body: JSON.stringify({ logo: ev.target.result }) }).then(function() {
+        toast('Logo guardado');
+        cargarLogo();
+      }).catch(function(err) { toast(err.message, 'error'); });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  });
+
+  document.getElementById('btnQuitarLogo').addEventListener('click', function() {
+    api('/api/informes/config/logo', { method: 'DELETE' }).then(function() {
+      toast('Logo eliminado');
+      cargarLogo();
+    }).catch(function(e) { toast(e.message, 'error'); });
   });
 
   // ── Init ──

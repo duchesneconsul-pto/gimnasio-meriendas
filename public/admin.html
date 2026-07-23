@@ -51,7 +51,9 @@
         <div class="page-header">
           <h1>Dashboard</h1>
           <div class="page-header-actions">
-            <span id="dashFecha" style="color:var(--text-muted);font-size:0.85rem"></span>
+            <span id="dashFecha" style="color:var(--text-muted);font-size:0.85rem;margin-right:0.5rem"></span>
+            <button class="btn btn-primary btn-sm" id="btnInformeDiarioPdf">Informe del dia PDF</button>
+            <button class="btn btn-outline btn-sm" id="btnInformeDiarioExcel">Informe del dia Excel</button>
           </div>
         </div>
         <div class="stats-grid" id="dashStats"></div>
@@ -163,6 +165,26 @@
       <section id="sec-config" class="hidden">
         <div class="page-header"><h1>Configuracion</h1></div>
         <div class="card">
+          <div class="card-header">Logo para informes PDF</div>
+          <div class="card-body">
+            <p style="font-size:0.85rem;color:var(--text-sec);margin-bottom:1rem">
+              Suba el logo del colegio o negocio. Aparecera en la esquina superior izquierda de todos los informes PDF.
+            </p>
+            <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+              <div id="logoPreview" style="width:80px;height:80px;border-radius:8px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--surface)">
+                <span style="font-size:0.7rem;color:var(--text-muted);text-align:center">Sin logo</span>
+              </div>
+              <div>
+                <label class="btn btn-outline btn-sm" style="cursor:pointer">
+                  Subir logo
+                  <input type="file" id="inputLogoFile" accept="image/*" style="display:none">
+                </label>
+                <button class="btn btn-danger btn-sm" id="btnQuitarLogo" style="display:none">Quitar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card mt-2">
           <div class="card-header">Integracion GoHighLevel</div>
           <div class="card-body">
             <p style="font-size:0.85rem;color:var(--text-sec);margin-bottom:1rem">
