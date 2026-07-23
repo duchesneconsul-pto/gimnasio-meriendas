@@ -397,6 +397,7 @@
       document.getElementById('cfgWebhookCredito').value = cfg.webhook_credito || '';
       document.getElementById('cfgNombre').value = cfg.nombre_negocio || '';
     }).catch(function(e) { toast(e.message, 'error'); });
+    cargarBackupInfo();
 
     api('/api/auth/usuarios').then(function(usuarios) {
       document.getElementById('tablaUsuarios').innerHTML =
@@ -497,6 +498,56 @@
         cargarConfig();
       }).catch(function(e) { toast(e.message, 'error'); });
     }
+  });
+
+  // ── Backup ──
+  function cargarBackupInfo() {
+    api('/api/backup/info').then(function(info) {
+      document.getElementById('backupInfo').innerHTML =
+        '<div class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));margin-bottom:0">' +
+        '<div class="stat-card info"><div class="stat-label">Productos</div><div class="stat-value" style="font-size:1.1rem">' + info.productos + '</div></div>' +
+        '<div class="stat-card gold"><div class="stat-label">Ventas</div><div class="stat-value" style="font-size:1.1rem">' + info.ventas + '</div></div>' +
+        '<div class="stat-card success"><div class="stat-label">Creditos</div><div class="stat-value" style="font-size:1.1rem">' + info.creditos + '</div></div>' +
+        '<div class="stat-card primary"><div class="stat-label">Tamano</div><div class="stat-value" style="font-size:1.1rem">' + info.tamano + '</div></div>' +
+        '</div>';
+    }).catch(function() {});
+  }
+
+  document.getElementById('btnDescargarBackup').addEventListener('click', function() {
+    fetch('/api/backup/descargar', { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Error al descargar');
+        return res.blob();
+      })
+      .then(function(blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'meriendas_backup_' + new Date().toISOString().slice(0,10) + '.db';
+        a.click();
+        URL.revokeObjectURL(url);
+        toast('Backup descargado');
+      })
+      .catch(function(e) { toast(e.message, 'error'); });
+  });
+
+  document.getElementById('btnRestaurarBackup').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    if (!confirm('Esto reemplazara TODOS los datos actuales con el backup. Continuar?')) {
+      e.target.value = '';
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var base64 = ev.target.result.split(',')[1];
+      api('/api/backup/restaurar', { method: 'POST', body: JSON.stringify({ data: base64 }) }).then(function() {
+        toast('Backup restaurado. Recargando...', 'info');
+        setTimeout(function() { window.location.reload(); }, 2000);
+      }).catch(function(e) { toast(e.message, 'error'); });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   });
 
   // ── Creditos ──

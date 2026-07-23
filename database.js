@@ -3,7 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const DB_PATH = path.join(__dirname, 'meriendas.db');
+const DB_DIR = process.env.DB_DIR || __dirname;
+const DB_PATH = path.join(DB_DIR, 'meriendas.db');
 
 let db = null;
 
@@ -249,4 +250,4 @@ async function initDb() {
   return db;
 }
 
-module.exports = { getDb, initDb };
+module.exports = { getDb, initDb, DB_PATH };
