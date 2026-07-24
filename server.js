@@ -72,7 +72,7 @@ async function start() {
   });
 
   const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n  Sistema de Meriendas - Gimnasio Campestre`);
+    console.log(`\n  Sistema de Meriendas - Gimnasio Campestre v1.1`);
     console.log(`  ─────────────────────────────────────────`);
     console.log(`  Servidor:  http://localhost:${PORT}`);
     console.log(`  POS:       http://localhost:${PORT}/pos`);
